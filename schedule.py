@@ -11,7 +11,6 @@ from google.oauth2.credentials import Credentials
 from apscheduler.schedulers.background import BackgroundScheduler
 
 
-
 scheduler = BackgroundScheduler()
 
 # If modifying these scopes, delete the file token.json.
@@ -21,24 +20,24 @@ SCOPES = ["https://www.googleapis.com/auth/calendar.readonly"]
 def get_events(start_date, end_date):
     """
     Calls the Google Calendar API and pulls all the events in the calendar from within the date-range specified.
-    
+
     Inputs: start date and end date to pull events from
-    Outputs: list of calendar event items 
+    Outputs: list of calendar event items
     """
     print("Getting events...")
 
     # 1) Define the time period to collect data from --------------------
 
-    start_date = datetime.datetime.strptime(
-        str(start_date), "%Y-%m-%d"
-    ).isoformat() + "Z" # 'Z' indicates UTC time
-    end_date = datetime.datetime.strptime(
-        str(end_date), "%Y-%m-%d"
-    ).isoformat() + "Z" # 'Z' indicates UTC time
+    start_date = (
+        datetime.datetime.strptime(str(start_date), "%Y-%m-%d").isoformat() + "Z"
+    )  # 'Z' indicates UTC time
+    end_date = (
+        datetime.datetime.strptime(str(end_date), "%Y-%m-%d").isoformat() + "Z"
+    )  # 'Z' indicates UTC time
     # datetime.datetime.utcnow()
 
-    #events = fetch_events(start_date, end_date)
-    
+    # events = fetch_events(start_date, end_date)
+
     # 2) Gather credentials / log in --------------------------
 
     creds = None
@@ -87,21 +86,20 @@ def get_events(start_date, end_date):
 
     if not events:
         print("No events found.")
-
+    print(type(events))
+    print(events[:10])
     return events
-
-
 
 
 def extract_event_data(events):
     """
     Extract data from each event. Records the time spent on each activity within and across days.
 
-    Input: 
+    Input:
         events - List of event items pulled from Google Calendar
-    Outputs: 
-        events_for_all_days_dict - a dictionary that contains the duration of each event for each day 
-        total_event_times_dict - a dictionary that contains a running total of the time spent of each activity  
+    Outputs:
+        events_for_all_days_dict - a dictionary that contains the duration of each event for each day
+        total_event_times_dict - a dictionary that contains a running total of the time spent of each activity
     """
 
     # 1) Gather data on each event --------------------
@@ -121,8 +119,8 @@ def extract_event_data(events):
         )
 
         # Account for user-error in entry of event names: Strip leading and trailing spaces, and convert to lowercase.
-        event_name = event["summary"].strip().lower() 
-        
+        event_name = event["summary"].strip().lower()
+
         # Account for spelling errors by matching very closely related strings (eg. "reponding" and "responding")
         for name in total_event_times_dict.keys():
             ratio = SequenceMatcher(None, event_name, name).ratio()
@@ -165,8 +163,8 @@ def extract_event_data(events):
     return events_for_all_days_dict, total_event_times_dict
     # -------------------- Save event data in a csv file to be uploaded to Tableau --------------------
 
-def save_to_csv(events_for_all_days_dict, total_event_times_dict):
 
+def save_to_csv(events_for_all_days_dict, total_event_times_dict):
     # 1) Create empty lists for each activity
     set_of_all_events = set()
     convert_to_csv_dict = {"Days": []}
@@ -196,7 +194,7 @@ def save_to_csv(events_for_all_days_dict, total_event_times_dict):
 
     # print('convert_to_csv_dict', convert_to_csv_dict)
 
-    # 3) Create data columns for the event names and the total time spent on each activity 
+    # 3) Create data columns for the event names and the total time spent on each activity
 
     (
         convert_to_csv_dict[" Total time spent on each event"],
