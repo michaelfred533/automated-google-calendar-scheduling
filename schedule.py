@@ -86,8 +86,6 @@ def get_events(start_date, end_date):
 
     if not events:
         print("No events found.")
-    print(type(events))
-    print(events[:10])
     return events
 
 
@@ -107,7 +105,6 @@ def extract_event_data(events):
     events_for_all_days_dict = {}
     total_event_times_dict = {}
 
-    # print(event['summary'], event_start_date)
     ## BUG: Default value for maxResults in list() above is 250, I set it to 2500 instead.
     for i, event in enumerate(events):
         # Extract the date and time of the start and the end of the event
@@ -192,7 +189,6 @@ def save_to_csv(events_for_all_days_dict, total_event_times_dict):
                     "(" + event + ")" + " - time spent for each day"
                 ].append(0)
 
-    # print('convert_to_csv_dict', convert_to_csv_dict)
 
     # 3) Create data columns for the event names and the total time spent on each activity
 
@@ -212,7 +208,7 @@ def save_to_csv(events_for_all_days_dict, total_event_times_dict):
     df = (
         df.transpose()
     )  # Transpose returns data to a normal format recognized by Tableau
-    # print('df', df)
+    
     df.to_csv("ScheduleData.csv")
 
 
