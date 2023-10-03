@@ -161,7 +161,7 @@ def extract_event_data(events):
     # -------------------- Save event data in a csv file to be uploaded to Tableau --------------------
 
 
-def save_to_csv(events_for_all_days_dict, total_event_times_dict):
+def create_csv(events_for_all_days_dict, total_event_times_dict):
     # 1) Create empty lists for each activity
     set_of_all_events = set()
     convert_to_csv_dict = {"Days": []}
@@ -202,20 +202,21 @@ def save_to_csv(events_for_all_days_dict, total_event_times_dict):
             total_event_times_dict[event]
         )
         convert_to_csv_dict["event Names"].append(event)
-
-    # The following 2 lines avoid the 'not equal length' error by filling in the remaining elements with nulls since our data columns differ in length.
-    df = pd.DataFrame.from_dict(convert_to_csv_dict, orient="index")
-    df = (
-        df.transpose()
-    )  # Transpose returns data to a normal format recognized by Tableau
     
-    df.to_csv("ScheduleData.csv")
+    return convert_to_csv_dict
 
 
 if __name__ == "__main__":
     events = get_events("2022-07-01", "2022-09-01")
     events_for_all_days_dict, total_event_times_dict = extract_event_data(events)
-    save_to_csv(events_for_all_days_dict, total_event_times_dict)
+    convert_to_csv_dict = create_csv(events_for_all_days_dict, total_event_times_dict)
+    
+    # The following 2 lines avoid the 'not equal length' error by filling in the remaining elements with nulls since our data columns differ in length.
+    df = pd.DataFrame.from_dict(convert_to_csv_dict, orient="index")
+    df = (
+        df.transpose()
+    )  # Transpose returns data to a normal format recognized by Tableau
+    df.to_csv("schedule_data.csv")
     print("...finished")
 
 

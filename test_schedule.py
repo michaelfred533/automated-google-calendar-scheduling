@@ -1,5 +1,6 @@
 import unittest 
 import schedule
+import pandas as pd
 
 class test_schedule(unittest.TestCase):
 
@@ -79,17 +80,23 @@ class test_schedule(unittest.TestCase):
         expected_total = {'test case' : 90.0}
     
         # tests:
-        print(type(result_all_days), type(result_total))
-        print(len(result_all_days), len(result_total))
         self.assertEqual(result_all_days, expected_all_days)
         self.assertEqual(result_total, expected_total)
 
 
-    def test_save_to_csv(self):
+    def test_create_csv(self):
         # input:
+        expected_all_days = {'2023-10-02' : {'test case' : 60.0}, '2023-10-03' : {'test case' : 30.0}}
+        expected_total = {'test case' : 90.0}
 
         # output:
+        result = schedule.create_csv(expected_all_days, expected_total)
 
         # expected:
+        expected = {'Days': ['2023-10-02', '2023-10-03'], 
+         '(test case) - time spent for each day': [60.0, 30.0], 
+         ' Total time spent on each event': [90.0], 
+         'event Names': ['test case']}
 
         # tests: 
+        self.assertEqual(result, expected)
