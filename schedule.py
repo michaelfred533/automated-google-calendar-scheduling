@@ -69,6 +69,7 @@ def get_events(start_date, end_date):
 
     # 3) Gather events from the Google Calendar API -------------------------------
 
+    # BUG fix: Default value for maxResults in service.events().list() is 250, I set it to 2500 instead.
     events_result = (
         service.events()
         .list(
@@ -84,7 +85,7 @@ def get_events(start_date, end_date):
     events = events_result.get("items", [])
 
     if not events:
-        print("No events found.")
+        raise ValueError("No events found")
     return events
 
 
@@ -104,7 +105,6 @@ def extract_event_data(events):
     events_for_all_days_dict = {}
     total_event_times_dict = {}
 
-    ## BUG: Default value for maxResults in list() above is 250, I set it to 2500 instead.
     for i, event in enumerate(events):
         # Extract the date and time of the start and the end of the event
         event_start_date = datetime.datetime.strptime(

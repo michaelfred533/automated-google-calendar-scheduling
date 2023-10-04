@@ -5,7 +5,14 @@ import pandas.testing as pd_testing
 
 
 class test_schedule(unittest.TestCase):
+
+
     def test_get_events(self):
+        """
+        Tests the basic function of google calendar API call for gathering calendar event data
+        """
+
+
         # input:
         start_date = "2023-10-02"
         end_date = "2023-10-04"
@@ -64,7 +71,52 @@ class test_schedule(unittest.TestCase):
         self.assertEqual(result[1]["start"], expected[1]["start"])
         self.assertEqual(result[1]["end"], expected[1]["end"])
 
+    def test_get_events_max(self):
+        """
+        Testing edge case if more than 250 events (default max) are in the calendar 
+        in the date range provided
+        """
+
+
+        # input:
+        start_date = "2021-10-01"
+        end_date = "2023-10-01"
+
+        # output:
+        result = schedule.get_events(start_date, end_date)
+
+        # expected:
+        # print(len(result))
+
+        # tests:
+        self.assertTrue(len(result) > 250)
+
+    def test_get_events_empty(self):
+        """
+        Test that a ValueError is raised when an empty list is returned for the date range provided
+        """
+
+
+        # input:
+        start_date = "2023-10-01"
+        end_date = "2023-10-02"
+
+        # output:
+
+        # expected:
+       
+        # tests:
+        with self.assertRaises(Exception) as assert_error:
+            schedule.get_events(start_date, end_date)
+        self.assertEqual(assert_error.exception.args[0], "No events found")
+
     def test_extract_event_data(self):
+        """
+        Tests basic function of properly extracting relevant data from the list of events provided by 
+        google calendar API
+        """
+
+        
         # input:
         input = [
             {
@@ -112,6 +164,11 @@ class test_schedule(unittest.TestCase):
         self.assertEqual(result_total, expected_total)
 
     def test_combine_data(self):
+        """
+        Tests basic function that the 2 dictionaries are combined into 1 
+        """
+        
+        
         # input:
         expected_all_days = {
             "2023-10-02": {"test case": 60.0},
@@ -133,25 +190,28 @@ class test_schedule(unittest.TestCase):
         # tests:
         self.assertEqual(result, expected)
 
-    # def test_create_csv(self):
+    def test_create_csv(self):
+        """
+        Tests basic function that a proper dataframe is created from the combined data dictionary
+        """
 
-    # input:
-    input = {
-            "Days": ["2023-10-02", "2023-10-03"],
-            "(test case) - time spent for each day": [60.0, 30.0],
-            " Total time spent on each event": [90.0],
-            "event Names": ["test case"],
-        }
-    # output:
-    result = schedule.create_csv(input)
+        # input:
+        input = {
+                "Days": ["2023-10-02", "2023-10-03"],
+                "(test case) - time spent for each day": [60.0, 30.0],
+                " Total time spent on each event": [90.0],
+                "event Names": ["test case"],
+            }
+        # output:
+        result = schedule.create_csv(input)
 
-    # expected:
-    data = [["2023-10-02", "2023-10-03"], [60.0, 30.0], [90.0, None], ["test case", None]]
-    columns = ["Days", "(test case) - time spent for each day", " Total time spent on each event", "event Names"]
-    expected = pd.DataFrame(data, columns).transpose()
+        # expected:
+        data = [["2023-10-02", "2023-10-03"], [60.0, 30.0], [90.0, None], ["test case", None]]
+        columns = ["Days", "(test case) - time spent for each day", " Total time spent on each event", "event Names"]
+        expected = pd.DataFrame(data, columns).transpose()
 
-    # tests:
-    pd_testing.assert_frame_equal(expected, result)
+        # tests:
+        pd_testing.assert_frame_equal(expected, result)
 
 if __name__ == "__main__":
     unittest.main()
