@@ -24,7 +24,6 @@ def get_events(start_date, end_date):
     Inputs: start date and end date to pull events from
     Outputs: list of calendar event items
     """
-    print("Getting events...")
 
     # 1) Define the time period to collect data from --------------------
 
@@ -161,62 +160,71 @@ def extract_event_data(events):
     # -------------------- Save event data in a csv file to be uploaded to Tableau --------------------
 
 
-def create_csv(events_for_all_days_dict, total_event_times_dict):
+def combine_data(events_for_all_days_dict, total_event_times_dict):
     # 1) Create empty lists for each activity
     set_of_all_events = set()
-    convert_to_csv_dict = {"Days": []}
+    combined_dict = {"Days": []}
     for day in events_for_all_days_dict.keys():
-        convert_to_csv_dict["Days"].append(day)
+        combined_dict["Days"].append(day)
         for event in events_for_all_days_dict[day]:
             set_of_all_events.add(event)
             if (
                 "(" + event + ")" + " - time spent for each day"
-                not in convert_to_csv_dict.keys()
+                not in combined_dict.keys()
             ):
-                convert_to_csv_dict[
-                    "(" + event + ")" + " - time spent for each day"
-                ] = []
+                combined_dict["(" + event + ")" + " - time spent for each day"] = []
 
     # 2) Record the time spent on each activity for each day, or record 0 if the activity was not perfermed
-    for day in convert_to_csv_dict["Days"]:
+    for day in combined_dict["Days"]:
         for event in list(set_of_all_events):
             if event in events_for_all_days_dict[day]:
-                convert_to_csv_dict[
-                    "(" + event + ")" + " - time spent for each day"
-                ].append(events_for_all_days_dict[day][event])
+                combined_dict["(" + event + ")" + " - time spent for each day"].append(
+                    events_for_all_days_dict[day][event]
+                )
             else:
-                convert_to_csv_dict[
-                    "(" + event + ")" + " - time spent for each day"
-                ].append(0)
-
+                combined_dict["(" + event + ")" + " - time spent for each day"].append(
+                    0
+                )
 
     # 3) Create data columns for the event names and the total time spent on each activity
 
     (
-        convert_to_csv_dict[" Total time spent on each event"],
-        convert_to_csv_dict["event Names"],
+        combined_dict[" Total time spent on each event"],
+        combined_dict["event Names"],
     ) = ([], [])
 
     for event in total_event_times_dict.keys():
-        convert_to_csv_dict[" Total time spent on each event"].append(
+        combined_dict[" Total time spent on each event"].append(
             total_event_times_dict[event]
         )
-        convert_to_csv_dict["event Names"].append(event)
-    
-    return convert_to_csv_dict
+        combined_dict["event Names"].append(event)
+
+    return combined_dict
 
 
-if __name__ == "__main__":
-    events = get_events("2022-07-01", "2022-09-01")
-    events_for_all_days_dict, total_event_times_dict = extract_event_data(events)
-    convert_to_csv_dict = create_csv(events_for_all_days_dict, total_event_times_dict)
-    
+def create_csv(combined_dict):
+    """
+    input: combined_dict dictionary containing all data to be saved in csv format for export to Tableau
+    output: A saved csv file in the directory
+    """
     # The following 2 lines avoid the 'not equal length' error by filling in the remaining elements with nulls since our data columns differ in length.
-    df = pd.DataFrame.from_dict(convert_to_csv_dict, orient="index")
+    df = pd.DataFrame.from_dict(combined_dict, orient="index")
     df = (
         df.transpose()
     )  # Transpose returns data to a normal format recognized by Tableau
     df.to_csv("schedule_data.csv")
+
+    # return the df so it can be used in the test_schedule script
+    return df
+
+
+if __name__ == "__main__":
+    print("getting events...")
+    events = get_events("2022-07-01", "2022-09-01")
+    events_for_all_days_dict, total_event_times_dict = extract_event_data(events)
+    combined_dict = combine_data(events_for_all_days_dict, total_event_times_dict)
+    create_csv(combined_dict)
+
     print("...finished")
 
 
