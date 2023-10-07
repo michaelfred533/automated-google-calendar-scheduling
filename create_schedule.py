@@ -108,13 +108,13 @@ def calc_time_mem(time_mem, subject_list_mem,  proportion_list_mem):
     input: 
         time_mem: amount of time to study memorization topics in minutes
         subject_list: list of activities to be done
-        proportion_list: proportion of each subject to be done
+        proportion_list_mem: proportion of each subject to be done
     
     output: events in 15m increments to schedule
     """
 
     time_for_subject_list = []
-    for prop in proportion_list:
+    for prop in proportion_list_mem:
         time = round((time_mem * prop) / 15) * 15 # round time to nearest 15min multiple
         time_for_subject_list.append(time)
 
@@ -124,7 +124,7 @@ def calc_time_mem(time_mem, subject_list_mem,  proportion_list_mem):
     # create list of events in order
     
     all_events_list = []
-    for time, subject in zip(time_for_subject_list, subject_list):
+    for time, subject in zip(time_for_subject_list, subject_list_mem):
         print()
         print("time and subject: ", time, subject)
         event_list = []
@@ -151,7 +151,7 @@ def calc_time_mem(time_mem, subject_list_mem,  proportion_list_mem):
                     }
                 event_list.extend([event_study, event_recall])
                 time_copy -= 45
-        print('Event_list: ---- ', event_list)
+        print('mem study Event_list: ---- ', event_list)
         all_events_list.append(event_list) 
 
     return all_events_list
@@ -160,7 +160,7 @@ def calc_time_mem(time_mem, subject_list_mem,  proportion_list_mem):
 def calc_time_nonmem(time_nonmem,  subject_list_nonmem, proportion_list_nonmem):
     """
     input: 
-    time_mem: amount of time to study memorization topics in minutes
+    time_nonmem: amount of time to practice the subject
     subject_list: list of activities to be done
     proportion_list_nonmem: proportion of each subject to be done
     
@@ -169,7 +169,7 @@ def calc_time_nonmem(time_nonmem,  subject_list_nonmem, proportion_list_nonmem):
 
     time_for_subject_list = []
     for prop in proportion_list_nonmem:
-        time = round((time_mem * prop) / 15) * 15 # round time to nearest 15min multiple
+        time = round((time_nonmem * prop) / 15) * 15 # round time to nearest 15min multiple
         time_for_subject_list.append(time)
 
             
@@ -183,28 +183,38 @@ def calc_time_nonmem(time_nonmem,  subject_list_nonmem, proportion_list_nonmem):
         print("time and subject: ", time, subject)
         event_list = []
         time_copy = copy.copy(time)
+
         while time_copy > 0:
-            if time_copy == 15 or time_copy == 30: # if 15 or 30m remaining, insert only study time
-                print('Last 15m or 30m chunk:', time_copy)
-                event_study = {
-                    'name' : (subject + " study"),
+
+            if time_copy >= 60:
+                print('time greater than 60:', time_copy)
+                event_practice = {
+                    'name' : (subject + " practice"),
+                    'duration' : 60,
+                    }
+                event_list.extend([event_practice])
+                time_copy -= 60
+
+            else:
+                print('Last chunk under 1 hour: ', time_copy)
+                event_practice = {
+                    'name' : (subject + " practice"),
                     'duration' : time_copy,
                     }
-                event_list.append(event_study)
+                event_list.append(event_practice)
                 time_copy = 0
 
-            elif time_copy >= 45:
-                print('time greater than 45:', time_copy)
-                event_study = {
-                    'name' : (subject + " study"),
-                    'duration' : 45,
-                    }
-                event_list.extend([event_study])
-                time_copy -= 45
-        print('Event_list: ---- ', event_list)
+        print('Nonmem Practice Event_list: ---- ', event_list)
         all_events_list.append(event_list) 
 
     return all_events_list
+
+#def calc_time():
+
+#def event_nonrem():
+
+#def event_rem():
+
 
 if __name__ == "__main__":
     total_time, subject_list_mem,  subject_list_nonmem = get_user_input()
@@ -214,8 +224,8 @@ if __name__ == "__main__":
 
 
     ## LEAVING OFF HERE, CREATE NEXT FUNCTION THAT INTERLEAVES THE STUDY BLOCKS 
-    # TODO: Convert events_list function to a recall type function 
-    # TODO: and create another for non-recall subjects
+    # TODO: create another function to be called within the for-loop for the nonmen and mem events function
+
 
 """
 steps:
