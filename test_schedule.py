@@ -3,6 +3,7 @@ import schedule
 import pandas as pd
 import pandas.testing as pd_testing
 
+SCOPES = ["https://www.googleapis.com/auth/calendar.readonly"]
 
 class test_schedule(unittest.TestCase):
 
@@ -18,7 +19,8 @@ class test_schedule(unittest.TestCase):
         end_date = "2023-10-04"
 
         # output:
-        result = schedule.get_events(start_date, end_date)
+        service = schedule.access_calendar(SCOPES)
+        result = schedule.get_events(service, start_date, end_date)
 
         # expected:
         expected = [
@@ -83,7 +85,8 @@ class test_schedule(unittest.TestCase):
         end_date = "2023-10-01"
 
         # output:
-        result = schedule.get_events(start_date, end_date)
+        service = schedule.access_calendar(SCOPES)
+        result = schedule.get_events(service, start_date, end_date)
 
         # expected:
         # print(len(result))
@@ -106,8 +109,9 @@ class test_schedule(unittest.TestCase):
         # expected:
        
         # tests:
+        service = schedule.access_calendar(SCOPES)
         with self.assertRaises(Exception) as assert_error:
-            schedule.get_events(start_date, end_date)
+            schedule.get_events(service, start_date, end_date)
         self.assertEqual(assert_error.exception.args[0], "No events found")
 
     def test_extract_event_data(self):

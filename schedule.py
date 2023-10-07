@@ -17,27 +17,15 @@ scheduler = BackgroundScheduler()
 SCOPES = ["https://www.googleapis.com/auth/calendar.readonly"]
 
 
-def get_events(start_date, end_date):
+def access_calendar(SCOPES):
     """
-    Calls the Google Calendar API and pulls all the events in the calendar from within the date-range specified.
+    Calls the Google Calendar API and generates/updates credentials.json if needed
 
-    Inputs: start date and end date to pull events from
-    Outputs: list of calendar event items
+    Inputs: SCOPES
+    Outputs: google calendar object
     """
 
-    # 1) Define the time period to collect data from --------------------
-
-    start_date = (
-        datetime.datetime.strptime(str(start_date), "%Y-%m-%d").isoformat() + "Z"
-    )  # 'Z' indicates UTC time
-    end_date = (
-        datetime.datetime.strptime(str(end_date), "%Y-%m-%d").isoformat() + "Z"
-    )  # 'Z' indicates UTC time
-    # datetime.datetime.utcnow()
-
-    # events = fetch_events(start_date, end_date)
-
-    # 2) Gather credentials / log in --------------------------
+    # 1) Gather credentials / log in --------------------------
 
     creds = None
     # The file token.json stores the user's access and refresh tokens, and is
@@ -66,6 +54,59 @@ def get_events(start_date, end_date):
     service = build(
         "calendar", "v3", credentials=creds
     )  # Creates the resource for interacting with the calendar api
+    
+    return service
+
+
+
+def get_events(service, start_date, end_date):
+    """
+    Calls the Google Calendar API and pulls all the events in the calendar from within the date-range specified.
+
+    Inputs: start date and end date to pull events from
+    Outputs: list of calendar event items
+    """
+
+
+    # # 1) Gather credentials / log in --------------------------
+
+    # creds = None
+    # # The file token.json stores the user's access and refresh tokens, and is
+    # # created automatically when the authorization flow completes for the first
+    # # time.
+    # if os.path.exists("token.json"):
+    #     creds = Credentials.from_authorized_user_file("token.json", SCOPES)
+
+    # # If there are no (valid) credentials available, let the user log in.
+    # if not creds or not creds.valid:
+    #     # Refresh creds if they are expired
+    #     if creds and creds.expired and creds.refresh_token:
+    #         creds.refresh(Request())
+    #     # Have user login to get creds
+    #     else:
+    #         flow = (
+    #             InstalledAppFlow.from_client_secrets_file(  # construct instance of flow
+    #                 "credentials.json", SCOPES
+    #             )
+    #         )
+    #         creds = flow.run_local_server(port=0)
+    #     # Save the credentials for the next run
+    #     with open("token.json", "w") as token:
+    #         token.write(creds.to_json())
+
+    # service = build(
+    #     "calendar", "v3", credentials=creds
+    # )  # Creates the resource for interacting with the calendar api
+
+    # 2) Define the time period to collect data from --------------------
+
+    start_date = (
+        datetime.datetime.strptime(str(start_date), "%Y-%m-%d").isoformat() + "Z"
+    )  # 'Z' indicates UTC time
+    end_date = (
+        datetime.datetime.strptime(str(end_date), "%Y-%m-%d").isoformat() + "Z"
+    )  # 'Z' indicates UTC time
+    # datetime.datetime.utcnow()
 
     # 3) Gather events from the Google Calendar API -------------------------------
 
@@ -220,7 +261,8 @@ def create_csv(combined_dict):
 
 if __name__ == "__main__":
     print("getting events...")
-    events = get_events("2022-07-01", "2022-09-01")
+    service = access_calendar(SCOPES)
+    events = get_events(service, "2022-07-01", "2022-09-01")
     events_for_all_days_dict, total_event_times_dict = extract_event_data(events)
     combined_dict = combine_data(events_for_all_days_dict, total_event_times_dict)
     create_csv(combined_dict)
