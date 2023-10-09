@@ -118,7 +118,7 @@ def separate(subject_time_tuples, memorize_or_not_list):
     return subject_time_tuples_mem,  subject_time_tuples_nonmem 
 
 
-def create_events(subject_time_tuples_mem, subject_time_tuples_nonmem, is_mem = 0):
+def create_events(subject_time_tuples, is_mem = 0):
     """
     input: 
         
@@ -128,41 +128,14 @@ def create_events(subject_time_tuples_mem, subject_time_tuples_nonmem, is_mem = 
     
     all_events_list = []
 
-    if is_mem:
-        for tup in subject_time_tuples:
-            events = helper_calc_event(tup[0], tup[1], is_mem)
-            all_events_list.extend([events])
-        ## TODO: 
-        
+    for tup in subject_time_tuples:
+        print("current tup: ", tup)
+        events = helper_calc_event(tup[0], tup[1], is_mem)
+        all_events_list.extend([events]) 
         print('events: ---- ', events)
-        all_events_list.append(events) 
 
     return all_events_list
 
-def interleave():
-    
-    time_sum_mem = sum([tup[1] for tup in subject_time_tuples_mem])
-    time_sum_nonmem = sum([tup[1] for tup in subject_time_tuples_nonmem])
-
-    if time_sum_mem > time_sum_nonmem:
-        ratio = time_sum_mem / time_sum_nonmem
-        more_mem = 1
-    else:
-        ratio = time_sum_nonmem / time_sum_mem
-        more_mem = 0
-    
-    print('before rounding: ', ratio, more_mem)
-    ratio = round(ratio)
-    print('after rounding: ', ratio)
-    # if there's 3x as much nonmem time, schedule 3 blocks of 1 hr nonmem with every 45m of mem
-
-    print(subject_time_tuples_mem)
-    print(subject_time_tuples_nonmem)
-    final_order = []
-    while time_sum_mem != 0 and time_sum_nonmem != 0:
-        break
-
-    return final_order
 
 def helper_calc_event(subject, time, is_mem = 0):
     """
@@ -172,9 +145,11 @@ def helper_calc_event(subject, time, is_mem = 0):
     
     output: events in 15m increments to schedule
     """
-
-    if is_mem:
+    ## TODO: combine these 2 events together into a block event of study + recall.
+    ## for use in interleave function()
+    if is_mem: 
         print()
+        print("is_mem YES: ", is_mem)
         print("time and subject: ", time, subject)
         events = []
         time_copy = copy.copy(time)
@@ -204,33 +179,76 @@ def helper_calc_event(subject, time, is_mem = 0):
         return events
 
 #-------------------------------
-    print()
-    print("time and subject: ", time, subject)
-    events = []
-    time_copy = copy.copy(time)
+    elif not is_mem: # technically this line is redundant. But helpful for testing
+        print("IS NOT MEM")
+        print()
+        print("time and subject: ", time, subject)
+        events = []
+        time_copy = copy.copy(time)
 
-    while time_copy > 0:
+        while time_copy > 0:
 
-        if time_copy >= 60:
-            print('time greater than 1 hour:', time_copy)
-            event_practice = {
-                'name' : (subject + " practice"),
-                'duration' : 60,
-                }
-            events.extend([event_practice])
-            time_copy -= 60
+            if time_copy >= 60:
+                print('time greater than 1 hour:', time_copy)
+                event_practice = {
+                    'name' : (subject + " practice"),
+                    'duration' : 60,
+                    }
+                events.extend([event_practice])
+                time_copy -= 60
 
-        else:
-            print('Last chunk under 1 hour: ', time_copy)
-            event_practice = {
-                'name' : (subject + " practice"),
-                'duration' : time_copy,
-                }
-            events.append(event_practice)
-            time_copy = 0
+            else:
+                print('Last chunk under 1 hour: ', time_copy)
+                event_practice = {
+                    'name' : (subject + " practice"),
+                    'duration' : time_copy,
+                    }
+                events.append(event_practice)
+                time_copy = 0
+        
+        return events
+        
+
+
+def interleave(events_1, events_2, time_sum_1, time_sum_2):
+    """
+    this function will actually be used to interleave nonmem and mem items 
+    amongst themselves and then again to merge together
+    """
+
+    if time_sum_1 > time_sum_2:
+        ratio = time_sum_1 / time_sum_2
+        more_1 = 1
+    else:
+        ratio = time_sum_2 / time_sum_1
+        more_1 = 0
     
-    return events
+
+    print('before rounding: ', ratio, more_1)
+    ratio = round(ratio)
+    print('after rounding: ', ratio)
+    # if there's 3x as much nonmem time, schedule 3 blocks of 1 hr nonmem with every 45m of mem
     
+    final_order = []
+    if more_1:
+        if ratio < 2:
+            while events_1: # TODO: can use a deque or a reverse sorted list make this more efficient
+                final_order.append(events_1.pop(0))
+                if events_2:
+                    final_order.append(events_2.pop(0))
+                else: print("No event_2s left") 
+            print('out of events1')
+        elif ratio >= 2:
+            while events_1: # add event_1 in ratio 2 to 1
+                for i in range(ratio):
+                    print("i:", i)
+                    final_order.append(events_1.pop(0))
+                    if (i+1) == round(ratio / 2): # insert event 2 in the middle of the block
+                        print('inserting in middle: ', i+1, ratio/2, round(ratio/2))
+                        final_order.append(events_2.pop(0))
+
+    print('final order: ', final_order)
+    #return final_order
 
    
 
@@ -240,24 +258,31 @@ if __name__ == "__main__":
     #total_time, subjects, memorize_or_not_list = get_user_input()
     #print(total_time, subjects, memorize_or_not_list)
     
-    total_time, subjects, proportions, memorize_or_not_list = 3, ['A', 'B', 'X', 'Z'], [.1, .2, .4, .3], ['y', 'y', 'n', 'n'] 
+    # ADDED
+    # total_time, subjects, proportions, memorize_or_not_list = 3, ['A', 'B', 'X', 'Z'], [.1, .2, .4, .3], ['y', 'y', 'n', 'n'] 
     
-    subject_time_tuples = calc_times(total_time, subjects, proportions)
-    subject_time_tuples_mem,  subject_time_tuples_nonmem = separate(subject_time_tuples, memorize_or_not_list)
-    print(subject_time_tuples_mem, subject_time_tuples_nonmem)
+    # subject_time_tuples = calc_times(total_time, subjects, proportions)
+    # subject_time_tuples_mem,  subject_time_tuples_nonmem = separate(subject_time_tuples, memorize_or_not_list)
 
+    # # time_sum_mem = sum([tup[1] for tup in subject_time_tuples_mem])
+    # # time_sum_nonmem = sum([tup[1] for tup in subject_time_tuples_nonmem])
 
-    interleave(subject_time_tuples_mem, subject_time_tuples_nonmem)
-    ## LEAVING OFF HERE, finish and test helper function and finish create_events function
+    # events_mem = create_events(subject_time_tuples_mem, is_mem = 1)
+    # events_nonmem = create_events(subject_time_tuples_nonmem, 0)
+    
+    # ADDED
+    events_1 = [{'name': 'X practice', 'duration': 60}] * 5
+    events_2 = [{'name': 'Z practice', 'duration': 60}]
+    time_sum_1, time_sum_2 = 300, 60
+    interleave(events_1, events_2, time_sum_1, time_sum_2)
+ 
+
+    ## LEAVING OFF HERE:
     # then do interelave function next by distributing mem blocks evenly through non-mem blocks 
 
 """
 steps:
 
-# define hours of day when study blocks can be input
-# interleave practice blocks - schedule in proportion to time difference for each activity
-    # separate out into mem and non-mem tasks is best then. 
-# schedule around pre-existing events
 """
 
 
