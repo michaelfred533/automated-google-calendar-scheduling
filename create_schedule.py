@@ -229,32 +229,50 @@ def interleave(events_1, events_2, time_sum_1, time_sum_2):
     print('after rounding: ', ratio)
     # if there's 3x as much nonmem time, schedule 3 blocks of 1 hr nonmem with every 45m of mem
     
-    final_order = []
+
     if more_1:
-        if ratio < 2:
-            while events_1: # TODO: can use a deque or a reverse sorted list make this more efficient
-                final_order.append(events_1.pop(0))
-                if events_2:
-                    final_order.append(events_2.pop(0))
-                else: print("No event_2s left") 
-            print('out of events1')
-        elif ratio >= 2:
-            #if len(events_1) >= ratio:
-            while events_1:
-                num = min(ratio, len(events_1)) # iterate only though the events left in the list if less than the ratio
-                print('number of iterations:', num)
-                midpoint = round(num / 2)
-                if len(events_1) <= round(ratio / 2):
-                    print("ADDING 2 FIRST")
-                    final_order.append(events_2.pop(0))
-                    final_order.extend([events_1])
-                else:
-                    for i in range(num):
-                        #print("i:", i)
-                        final_order.append(events_1.pop(0))
-                        if (i+1) == midpoint: # insert event 2 in the middle of the block
-                            print('inserting in middle: ', i+1, ratio/2, round(ratio/2))
-                            final_order.append(events_2.pop(0))
+        splits = round(len(events_1) / (len(events_2) + 1))
+        print('splits: ', splits)
+        
+        indexes = [ind for ind in range(splits, len(events_1)) if ind % splits == 0]
+        print("indexes: ", indexes)
+
+        final_order = copy.copy(events_1)
+        indexes.reverse()
+        events_to_instert = events_2[::-1]
+        for ind, event in zip(indexes, events_2):
+            final_order.insert(ind, event)
+            
+
+
+
+
+    # final_order = []
+    # if more_1:
+    #     if ratio < 2:
+    #         while events_1: # TODO: can use a deque or a reverse sorted list make this more efficient
+    #             final_order.append(events_1.pop(0))
+    #             if events_2:
+    #                 final_order.append(events_2.pop(0))
+    #             else: print("No event_2s left") 
+    #         print('out of events1')
+    #     elif ratio >= 2:
+    #         #if len(events_1) >= ratio:
+    #         while events_1:
+    #             num = min(ratio, len(events_1)) # iterate only though the events left in the list if less than the ratio
+    #             print('number of iterations:', num)
+    #             midpoint = round(num / 2)
+    #             if len(events_1) <= round(ratio / 2):
+    #                 print("ADDING 2 FIRST")
+    #                 final_order.append(events_2.pop(0))
+    #                 final_order.extend([events_1])
+    #             else:
+    #                 for i in range(num):
+    #                     #print("i:", i)
+    #                     final_order.append(events_1.pop(0))
+    #                     if (i+1) == midpoint: # insert event 2 in the middle of the block
+    #                         print('inserting in middle: ', i+1, ratio/2, round(ratio/2))
+    #                         final_order.append(events_2.pop(0))
 
                 
 
@@ -282,7 +300,7 @@ if __name__ == "__main__":
     # events_nonmem = create_events(subject_time_tuples_nonmem, 0)
     
     # ADDED
-    len_1, len_2 = 7, 2
+    len_1, len_2 = 9, 2
     events_1 = [{'name': 'X practice', 'duration': 60}] * len_1
     events_2 = [{'name': 'Z practice', 'duration': 60}] * len_2
     time_sum_1, time_sum_2 = 60 * len_1, 60 * len_2
