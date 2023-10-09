@@ -239,13 +239,24 @@ def interleave(events_1, events_2, time_sum_1, time_sum_2):
                 else: print("No event_2s left") 
             print('out of events1')
         elif ratio >= 2:
-            while events_1: # add event_1 in ratio 2 to 1
-                for i in range(ratio):
-                    print("i:", i)
-                    final_order.append(events_1.pop(0))
-                    if (i+1) == round(ratio / 2): # insert event 2 in the middle of the block
-                        print('inserting in middle: ', i+1, ratio/2, round(ratio/2))
-                        final_order.append(events_2.pop(0))
+            #if len(events_1) >= ratio:
+            while events_1:
+                num = min(ratio, len(events_1)) # iterate only though the events left in the list if less than the ratio
+                print('number of iterations:', num)
+                midpoint = round(num / 2)
+                if len(events_1) <= round(ratio / 2):
+                    print("ADDING 2 FIRST")
+                    final_order.append(events_2.pop(0))
+                    final_order.extend([events_1])
+                else:
+                    for i in range(num):
+                        #print("i:", i)
+                        final_order.append(events_1.pop(0))
+                        if (i+1) == midpoint: # insert event 2 in the middle of the block
+                            print('inserting in middle: ', i+1, ratio/2, round(ratio/2))
+                            final_order.append(events_2.pop(0))
+
+                
 
     print('final order: ', final_order)
     #return final_order
@@ -271,14 +282,14 @@ if __name__ == "__main__":
     # events_nonmem = create_events(subject_time_tuples_nonmem, 0)
     
     # ADDED
-    events_1 = [{'name': 'X practice', 'duration': 60}] * 5
-    events_2 = [{'name': 'Z practice', 'duration': 60}]
-    time_sum_1, time_sum_2 = 300, 60
+    len_1, len_2 = 7, 2
+    events_1 = [{'name': 'X practice', 'duration': 60}] * len_1
+    events_2 = [{'name': 'Z practice', 'duration': 60}] * len_2
+    time_sum_1, time_sum_2 = 60 * len_1, 60 * len_2
     interleave(events_1, events_2, time_sum_1, time_sum_2)
  
 
-    ## LEAVING OFF HERE:
-    # then do interelave function next by distributing mem blocks evenly through non-mem blocks 
+    ## LEAVING OFF HERE: Split longer list into i+1 chunks and insert shorter list's events
 
 """
 steps:
