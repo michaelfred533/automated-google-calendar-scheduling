@@ -173,7 +173,8 @@ def helper_calc_event(subject, time, is_mem = 0):
                     'name' : (subject + " recall"),
                     'duration' : 15,
                     }
-                events.extend([event_study, event_recall])
+                recall_block = {'recall block' : [event_study, event_recall], 'duration' : 45}
+                events.append(recall_block)
                 time_copy -= 45
             
         return events
@@ -210,11 +211,21 @@ def helper_calc_event(subject, time, is_mem = 0):
         
 
 
-def interleave(events_1, events_2, time_sum_1, time_sum_2):
+def interleave(events):
     """
     this function will actually be used to interleave nonmem and mem items 
     amongst themselves and then again to merge together
     """
+    if len(events) > 2:
+        print('entering recursion: ')
+        interleaved_events = interleave(events[1:])
+        events = [events[0], interleaved_events] # create new list with interleaved events and leftover events
+
+    events_1, events_2 = events[0], events[1]
+    time_sum_1 = sum(item['duration'] for item in events_1 if 'duration' in item)
+    time_sum_2 = sum(item['duration'] for item in events_2 if 'duration' in item)
+
+    print('time sums:', time_sum_1, 'and ', time_sum_2)
 
     if time_sum_1 >= time_sum_2:
         events_more, events_less = events_1, events_2
@@ -224,6 +235,9 @@ def interleave(events_1, events_2, time_sum_1, time_sum_2):
         time_sum_more, time_sum_less = time_sum_2, time_sum_1
 
     splits = round(len(events_more) / (len(events_less) + 1))
+    if splits == 0:
+        print('changing splits from 0 to 1..')
+        splits = 1
     print('splits: ', splits)
     
     indexes = [ind for ind in range(splits, len(events_more)) if ind % splits == 0]
@@ -238,9 +252,21 @@ def interleave(events_1, events_2, time_sum_1, time_sum_2):
     
 
     print('final order: ', final_order)
-    #return final_order
+    return final_order
 
-   
+
+def mix_lists(events_1, events_2):
+    if len(events_1) >= len(events_2):
+        events_long, events_short = events_1, events_2
+    else:
+        events_long, events_short = events_2, events_1 
+
+    mixed_list = []
+    for event_short, event_long in zip(events_short, events_long):
+        mixed_list.extend([event_short, event_long])
+
+    print('mixed list: ', mixed_list)
+    return mixed_list
 
 # user_input -> calc_times -> separate -> create_events -> interleave
 
@@ -249,26 +275,33 @@ if __name__ == "__main__":
     #print(total_time, subjects, memorize_or_not_list)
     
     # ADDED
-    # total_time, subjects, proportions, memorize_or_not_list = 3, ['A', 'B', 'X', 'Z'], [.1, .2, .4, .3], ['y', 'y', 'n', 'n'] 
+    total_time, subjects, proportions, memorize_or_not_list = 3, ['A', 'B', 'X', 'Z'], [.2, .2, .3, .3], ['y', 'y', 'n', 'n'] 
     
-    # subject_time_tuples = calc_times(total_time, subjects, proportions)
-    # subject_time_tuples_mem,  subject_time_tuples_nonmem = separate(subject_time_tuples, memorize_or_not_list)
+    subject_time_tuples = calc_times(total_time, subjects, proportions)
+    subject_time_tuples_mem,  subject_time_tuples_nonmem = separate(subject_time_tuples, memorize_or_not_list)
 
-    # # time_sum_mem = sum([tup[1] for tup in subject_time_tuples_mem])
-    # # time_sum_nonmem = sum([tup[1] for tup in subject_time_tuples_nonmem])
+    events_mem = create_events(subject_time_tuples_mem, is_mem = 1)
+    events_nonmem = create_events(subject_time_tuples_nonmem, 0)
+    print(events_mem)
+    print(events_nonmem)
+    print()
 
-    # events_mem = create_events(subject_time_tuples_mem, is_mem = 1)
-    # events_nonmem = create_events(subject_time_tuples_nonmem, 0)
-    
+    mixed_events = mix_lists(events_mem, events_nonmem)
+
     # ADDED
-    len_1, len_2 = 1, 2
-    events_1 = [{'name': 'X practice', 'duration': 60}] * len_1
-    events_2 = [{'name': 'Z practice', 'duration': 60}] * len_2
-    time_sum_1, time_sum_2 = 60 * len_1, 60 * len_2
-    interleave(events_1, events_2, time_sum_1, time_sum_2)
+    # len_1, len_2, len_3, len_4 = 2, 2, 1, 1
+    # events_1 = [{'name': 'X practice', 'duration': 60}] * len_1
+    # events_2 = [{'name': 'Y practice', 'duration': 60}] * len_2
+    # events_3 = [{'name': 'Z practice', 'duration': 60}] * len_3
+    # events_4 = [{'name': 'A practice', 'duration': 60}] * len_4
+    # events = [events_1, events_2, events_3, events_4]
+    
+    #interleave(mixed_events)
  
 
     ## LEAVING OFF HERE: 
+    # combine study and free_recall sessions into 1 block and then.. 
+    # try interleave() function with 2 levels
 
 """
 steps:
