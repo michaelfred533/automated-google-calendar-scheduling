@@ -132,7 +132,6 @@ def create_events(subject_time_tuples, is_mem = 0):
         print("current tup: ", tup)
         events = helper_calc_event(tup[0], tup[1], is_mem)
         all_events_list.extend([events]) 
-        print('events: ---- ', events)
 
     return all_events_list
 
@@ -148,9 +147,8 @@ def helper_calc_event(subject, time, is_mem = 0):
     ## TODO: combine these 2 events together into a block event of study + recall.
     ## for use in interleave function()
     if is_mem: 
-        print()
-        print("is_mem YES: ", is_mem)
-        print("time and subject: ", time, subject)
+        #print("is_mem YES: ", is_mem)
+        #print("time and subject: ", time, subject)
         events = []
         time_copy = copy.copy(time)
         while time_copy > 0:
@@ -181,9 +179,8 @@ def helper_calc_event(subject, time, is_mem = 0):
 
 #-------------------------------
     elif not is_mem: # technically this line is redundant. But helpful for testing
-        print("IS NOT MEM")
-        print()
-        print("time and subject: ", time, subject)
+        #print("event is practice, not mem")
+        #print("time and subject: ", time, subject)
         events = []
         time_copy = copy.copy(time)
 
@@ -210,51 +207,6 @@ def helper_calc_event(subject, time, is_mem = 0):
         return events
         
 
-
-def interleave(events):
-    """
-    this function will actually be used to interleave nonmem and mem items 
-    amongst themselves and then again to merge together
-    """
-    if len(events) > 2:
-        print('entering recursion: ')
-        interleaved_events = interleave(events[1:])
-        events = [events[0], interleaved_events] # create new list with interleaved events and leftover events
-
-    events_1, events_2 = events[0], events[1]
-    time_sum_1 = sum(item['duration'] for item in events_1 if 'duration' in item)
-    time_sum_2 = sum(item['duration'] for item in events_2 if 'duration' in item)
-
-    print('time sums:', time_sum_1, 'and ', time_sum_2)
-
-    if time_sum_1 >= time_sum_2:
-        events_more, events_less = events_1, events_2
-        time_sum_more, time_sum_less = time_sum_1, time_sum_2
-    else:
-        events_more, events_less = events_2, events_1
-        time_sum_more, time_sum_less = time_sum_2, time_sum_1
-
-    splits = round(len(events_more) / (len(events_less) + 1))
-    if splits == 0:
-        print('changing splits from 0 to 1..')
-        splits = 1
-    print('splits: ', splits)
-    
-    indexes = [ind for ind in range(splits, len(events_more)) if ind % splits == 0]
-    if len(indexes) < len(events_less):
-        print('indexes shorter than num of events: ', len(events_less))
-        indexes.append(len(events_more) + len(events_less) - 1)
-    print("indexes: ", indexes)
-
-    final_order = copy.copy(events_more)
-    for ind, event, i in zip(indexes, events_less, range(len(indexes))):
-        final_order.insert(ind + i, event)
-    
-
-    print('final order: ', final_order)
-    return final_order
-
-
 def mix_lists(events_1, events_2):
     if len(events_1) >= len(events_2):
         events_long, events_short = events_1, events_2
@@ -268,6 +220,52 @@ def mix_lists(events_1, events_2):
     print('mixed list: ', mixed_list)
     return mixed_list
 
+
+def interleave(events):
+    """
+    this function will actually be used to interleave nonmem and mem items 
+    amongst themselves and then again to merge together
+    """
+    if len(events) > 2:
+        print('ENTERING recursion: ', events[1:])
+        print()
+        interleaved_events = interleave(events[1:])
+        events = [events[0], interleaved_events] # create new list with interleaved events and leftover events
+    
+    print('EXITING recursion')
+    events_1, events_2 = events[0], events[1]
+    #time_sum_1 = sum(item['duration'] for item in events_1 if 'duration' in item)
+    #time_sum_2 = sum(item['duration'] for item in events_2 if 'duration' in item)
+
+
+    #if time_sum_1 >= time_sum_2:
+    if len(events_1) >= len(events_2):
+        events_more, events_less = events_1, events_2
+        #time_sum_more, time_sum_less = time_sum_1, time_sum_2
+    else:
+        events_more, events_less = events_2, events_1
+        #time_sum_more, time_sum_less = time_sum_2, time_sum_1
+
+    splits = round(len(events_more) / (len(events_less) + 1))
+    if splits == 0:
+        print('changing splits from 0 to 1..')
+        splits = 1
+    print('splits: ', splits)
+    
+    indexes = [ind for ind in range(splits, len(events_more)) if ind % splits == 0]
+    if len(indexes) < len(events_less):
+        print('indexes shorter than num of events: ', indexes, 'num events: ', len(events_less))
+        indexes.append(len(events_more) + len(events_less) - 1)
+    print("indexes: ", indexes)
+
+    final_order = copy.copy(events_more)
+    for ind, event, i in zip(indexes, events_less, range(len(indexes))):
+        final_order.insert(ind + i, event)
+    
+
+    print('Interleave results: ', final_order)
+    return final_order
+
 # user_input -> calc_times -> separate -> create_events -> interleave
 
 if __name__ == "__main__":
@@ -275,16 +273,16 @@ if __name__ == "__main__":
     #print(total_time, subjects, memorize_or_not_list)
     
     # ADDED
-    total_time, subjects, proportions, memorize_or_not_list = 3, ['A', 'B', 'X', 'Z'], [.2, .2, .3, .3], ['y', 'y', 'n', 'n'] 
+    total_time, subjects, proportions, memorize_or_not_list = 6, ['A', 'B', 'X', 'Y'], [.25, .25, .25, .25], ['y', 'y', 'n', 'n'] 
     
     subject_time_tuples = calc_times(total_time, subjects, proportions)
     subject_time_tuples_mem,  subject_time_tuples_nonmem = separate(subject_time_tuples, memorize_or_not_list)
 
     events_mem = create_events(subject_time_tuples_mem, is_mem = 1)
     events_nonmem = create_events(subject_time_tuples_nonmem, 0)
+    print("both event sets before interleaving: ")
     print(events_mem)
     print(events_nonmem)
-    print()
 
     mixed_events = mix_lists(events_mem, events_nonmem)
 
@@ -296,7 +294,7 @@ if __name__ == "__main__":
     # events_4 = [{'name': 'A practice', 'duration': 60}] * len_4
     # events = [events_1, events_2, events_3, events_4]
     
-    #interleave(mixed_events)
+    interleave(mixed_events)
  
 
     ## LEAVING OFF HERE: 
@@ -304,7 +302,10 @@ if __name__ == "__main__":
     # try interleave() function with 2 levels
 
 """
-steps:
+notes:
+
+if you want to change how different mem subjects and non-mem subjects are dispursed, 
+tweak the more/less logic flow in interleave() function 
 
 """
 
