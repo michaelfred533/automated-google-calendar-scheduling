@@ -152,8 +152,20 @@ def helper_calc_event(subject, time, is_mem = 0):
         events = []
         time_copy = copy.copy(time)
         while time_copy > 0:
-            if time_copy == 15 or time_copy == 30: # if 15 or 30m remaining, insert only study time
-                print('Last 15m or 30m chunk:', time_copy)
+            if time_copy == 15:
+                print('last 15m chunk, add to previous recall block')
+                if events:
+                    events[-1]['duration'] += 15
+                    events[-1]['recall block'][0]['duration'] += 15
+                elif not events:
+                    event_study = {
+                    'name' : (subject + " study"),
+                    'duration' : time_copy,
+                    }
+                    events.append(event_study)
+                time_copy = 0
+            elif time_copy == 30: # if 30m remaining, insert only study time
+                print('last 30m chunk:', time_copy)
                 event_study = {
                     'name' : (subject + " study"),
                     'duration' : time_copy,
@@ -208,6 +220,9 @@ def helper_calc_event(subject, time, is_mem = 0):
         
 
 def mix_lists(events_1, events_2):
+    """
+    
+    """
     if len(events_1) >= len(events_2):
         events_long, events_short = events_1, events_2
     else:
@@ -215,7 +230,12 @@ def mix_lists(events_1, events_2):
 
     mixed_list = []
     for event_short, event_long in zip(events_short, events_long):
-        mixed_list.extend([event_short, event_long])
+        mixed_list.extend([event_long, event_short])
+
+    length_difference = len(events_long) - len(events_short)
+    if length_difference > 0: 
+        mixed_list.extend(events_long[-length_difference:])
+
 
     print('mixed list: ', mixed_list)
     return mixed_list
@@ -273,7 +293,7 @@ if __name__ == "__main__":
     #print(total_time, subjects, memorize_or_not_list)
     
     # ADDED
-    total_time, subjects, proportions, memorize_or_not_list = 6, ['A', 'B', 'X', 'Y'], [.25, .25, .25, .25], ['y', 'y', 'n', 'n'] 
+    total_time, subjects, proportions, memorize_or_not_list = 5, ['A', 'B', 'X', 'Y', 'Z'], [.20, .20, .20, .20, .20], ['y', 'y', 'n', 'n', 'n'] 
     
     subject_time_tuples = calc_times(total_time, subjects, proportions)
     subject_time_tuples_mem,  subject_time_tuples_nonmem = separate(subject_time_tuples, memorize_or_not_list)
@@ -285,21 +305,11 @@ if __name__ == "__main__":
     print(events_nonmem)
 
     mixed_events = mix_lists(events_mem, events_nonmem)
-
-    # ADDED
-    # len_1, len_2, len_3, len_4 = 2, 2, 1, 1
-    # events_1 = [{'name': 'X practice', 'duration': 60}] * len_1
-    # events_2 = [{'name': 'Y practice', 'duration': 60}] * len_2
-    # events_3 = [{'name': 'Z practice', 'duration': 60}] * len_3
-    # events_4 = [{'name': 'A practice', 'duration': 60}] * len_4
-    # events = [events_1, events_2, events_3, events_4]
     
     interleave(mixed_events)
- 
 
     ## LEAVING OFF HERE: 
-    # combine study and free_recall sessions into 1 block and then.. 
-    # try interleave() function with 2 levels
+    # create tests for interleave() funciton - test with 3 or 5 subjects
 
 """
 notes:
