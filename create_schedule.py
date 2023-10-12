@@ -135,7 +135,8 @@ def create_events(subject_time_tuples, is_mem = 0):
 
     return all_events_list
 
-
+#TODO passing in boolean to function is bad practice, fix this method
+#TODO create new sub-functions under calc_event Class 
 def helper_calc_event(subject, time, is_mem = 0):
     """
     input: 
@@ -144,8 +145,6 @@ def helper_calc_event(subject, time, is_mem = 0):
     
     output: events in 15m increments to schedule
     """
-    ## TODO: combine these 2 events together into a block event of study + recall.
-    ## for use in interleave function()
     if is_mem: 
         #print("is_mem YES: ", is_mem)
         #print("time and subject: ", time, subject)
@@ -217,30 +216,31 @@ def helper_calc_event(subject, time, is_mem = 0):
                 time_copy = 0
         
         return events
-        
 
-def mix_lists(events_1, events_2):
-    """
+#TODO probably delete mix_lists function - it's better to sort descending on length      
+# def mix_lists(events_1, events_2):
+#     """
     
-    """
-    if len(events_1) >= len(events_2):
-        events_long, events_short = events_1, events_2
-    else:
-        events_long, events_short = events_2, events_1 
+#     """
+#     if len(events_1) >= len(events_2):
+#         events_long, events_short = events_1, events_2
+#     else:
+#         events_long, events_short = events_2, events_1 
 
-    mixed_list = []
-    for event_short, event_long in zip(events_short, events_long):
-        mixed_list.extend([event_long, event_short])
+#     mixed_list = []
+#     for event_short, event_long in zip(events_short, events_long):
+#         mixed_list.extend([event_long, event_short])
 
-    length_difference = len(events_long) - len(events_short)
-    if length_difference > 0: 
-        mixed_list.extend(events_long[-length_difference:])
-
-
-    print('mixed list: ', mixed_list)
-    return mixed_list
+#     length_difference = len(events_long) - len(events_short)
+#     if length_difference > 0: 
+#         mixed_list.extend(events_long[-length_difference:])
 
 
+#     print('mixed list: ', mixed_list)
+#     return mixed_list
+    
+
+#TODO throw an excpetion if a list of len(1) is passed in 
 def interleave(events):
     """
     this function will actually be used to interleave nonmem and mem items 
@@ -254,17 +254,11 @@ def interleave(events):
     
     print('EXITING recursion')
     events_1, events_2 = events[0], events[1]
-    #time_sum_1 = sum(item['duration'] for item in events_1 if 'duration' in item)
-    #time_sum_2 = sum(item['duration'] for item in events_2 if 'duration' in item)
 
-
-    #if time_sum_1 >= time_sum_2:
     if len(events_1) >= len(events_2):
         events_more, events_less = events_1, events_2
-        #time_sum_more, time_sum_less = time_sum_1, time_sum_2
     else:
         events_more, events_less = events_2, events_1
-        #time_sum_more, time_sum_less = time_sum_2, time_sum_1
 
     splits = round(len(events_more) / (len(events_less) + 1))
     if splits == 0:
@@ -286,6 +280,7 @@ def interleave(events):
     print('Interleave results: ', final_order)
     return final_order
 
+
 # user_input -> calc_times -> separate -> create_events -> interleave
 
 if __name__ == "__main__":
@@ -293,7 +288,7 @@ if __name__ == "__main__":
     #print(total_time, subjects, memorize_or_not_list)
     
     # ADDED
-    total_time, subjects, proportions, memorize_or_not_list = 5, ['A', 'B', 'X', 'Y', 'Z'], [.20, .20, .20, .20, .20], ['y', 'y', 'n', 'n', 'n'] 
+    total_time, subjects, proportions, memorize_or_not_list = 8, ['A', 'B', 'X',], [.175, .175, .75], ['y', 'y', 'n'] 
     
     subject_time_tuples = calc_times(total_time, subjects, proportions)
     subject_time_tuples_mem,  subject_time_tuples_nonmem = separate(subject_time_tuples, memorize_or_not_list)
@@ -304,12 +299,17 @@ if __name__ == "__main__":
     print(events_mem)
     print(events_nonmem)
 
-    mixed_events = mix_lists(events_mem, events_nonmem)
-    
-    interleave(mixed_events)
+    sorted_subject_list = sorted(events_mem + events_nonmem, key = len, reverse=True)
+
+    interleave(sorted_subject_list)
+
+
 
     ## LEAVING OFF HERE: 
-    # create tests for interleave() funciton - test with 3 or 5 subjects
+    # go through and create classes and more sub-functions. (<30 lines per func)
+    # create checks for only 1 type of study
+    # create checks for 1 subject 
+
 
 """
 notes:
