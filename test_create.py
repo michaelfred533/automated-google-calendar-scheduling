@@ -7,36 +7,34 @@ import create_schedule
 
 class test_create(unittest.TestCase):
 
-    def test_mix_lists(self):
+    # def test_mix_lists(self):
 
-        # input:
-        events_1, events_2 = ['A', 'B'], ['W', 'X', 'Y', 'Z']
+    #     # input:
+    #     events_1, events_2 = ['A', 'B'], ['W', 'X', 'Y', 'Z']
         
-        # result:
-        result = create_schedule.mix_lists(events_1, events_2)
+    #     # result:
+    #     result = create_schedule.mix_lists(events_1, events_2)
 
-        # expected:
-        expected = ['W', 'A', 'X', 'B', 'Y', 'Z']
+    #     # expected:
+    #     expected = ['W', 'A', 'X', 'B', 'Y', 'Z']
 
-        # tests:
-        self.assertEqual(result, expected)
-        self.assertEqual(len(result), (len(events_1) + len(events_2)))
+    #     # tests:
+    #     self.assertEqual(result, expected)
+    #     self.assertEqual(len(result), (len(events_1) + len(events_2)))
+    # def test_mix_lists2(self):
+
+    #     # input:
+    #     events_1, events_2 = ['A', 'B'], ['W', 'X', 'Y']
         
+    #     # result:
+    #     result = create_schedule.mix_lists(events_1, events_2)
 
-    def test_mix_lists2(self):
+    #     # expected:
+    #     expected = ['W', 'A', 'X', 'B', 'Y']
 
-        # input:
-        events_1, events_2 = ['A', 'B'], ['W', 'X', 'Y']
-        
-        # result:
-        result = create_schedule.mix_lists(events_1, events_2)
-
-        # expected:
-        expected = ['W', 'A', 'X', 'B', 'Y']
-
-        # tests:
-        self.assertEqual(result, expected)
-        self.assertEqual(len(result), (len(events_1) + len(events_2)))    
+    #     # tests:
+    #     self.assertEqual(result, expected)
+    #     self.assertEqual(len(result), (len(events_1) + len(events_2)))    
 
     ## ------------------------End of test block---------------------
 
@@ -109,22 +107,17 @@ class test_create(unittest.TestCase):
 
 
         # tests:
-        #TODO: clean this up and make more efficient
-        # but this checks to make sure that each item in the list is maximally distributed
         subject_list = ['A', 'B', 'X', 'Y', 'Z']
-        all_differences = []
+        # makes sure that each element is maximally distributed 
         for subject in subject_list:
             indexes = [index for index, value in enumerate(result) if value == subject]
             differences =[]
             for i in range(len(indexes)-1):
                 differences.append(indexes[i+1] - indexes[i])
-            all_differences.append(differences)
-        print(all_differences)
-        
-        for differences in all_differences:
             for i in range(len(differences)-1):
                 self.assertTrue(abs(differences[i+1]-differences[i]) <= 1)
                 print(abs(differences[i+1]-differences[i]))
+        
 
     ## ------------------------End of test block---------------------
 

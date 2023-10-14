@@ -38,48 +38,46 @@ SCOPES = ["https://www.googleapis.com/auth/calendar.readonly"]
 
 # ----------------------------------------------------------------------------------------------------------------
 
+#TODO: fill out this class 
+class event:
+
+    def set_duration():
+        pass
+    def get_duration():
+        pass
+    def set_name():
+        pass
+    def get_name():
+        pass 
+    def set_session_type():
+        pass
+    def get_session_type():
+        pass 
+class recall(event):
+    
+    pass
+class practice(event):
+    def __init__(self, subject, duration):
+        self.duration = duration
+        self.subject = subject
+
+    pass 
+
+
 def get_user_input():
     """
     get user input for activities and what type of activities they are.
     whether to include free-recall sessions or not
     """
+    helper = HelperUserInput()
 
-    # input list of activitys and proportion for each activity
+    total_time = helper.get_time()
 
     while True:
-        total_time = input("How many total hours do you want to spend learning tomorrow? ")
+        subjects = helper.get_subjects()
+        memorize_or_not_list = helper.get_memorize_or_not_list(subjects)
+        proportions = helper.get_proportions(subjects)
         
-        try:
-            total_time = int(total_time)
-        except ValueError:
-            continue
-
-        if len(str(total_time)) <= 2:
-            break
-        print("Wrong format. Please try again. The expected format is a 1-2 digit whole number.")
-    
-    while True:
-        while True:    
-            subjects = input("Please enter the activities you wish to schedule, seperated by a comma and space (A, B, C): ")
-            subjects = subjects.split(", ")
-            if len(set(subjects)) == len(subjects):
-                break
-            print("There are duplicates in your list. Please try again.")
-
-        while True:
-            memorize_or_not_list = input(f"The activites you chose: {subjects}. Please enter 'Y' or 'N' for each activity depending on if it involves memorization (Y, N, Y): ")
-            memorize_or_not_list = memorize_or_not_list.lower().split(", ")
-            if all(mem == "y" or mem == 'n' for mem in memorize_or_not_list) and (len(memorize_or_not_list) == len(subjects)):
-                break
-            print("ERROR: memorize_or_not_list in unexpected format: ", memorize_or_not_list, "Please try again. Make sure the length of the list matches the number of activites entered. You entered ", len(subjects), " subjects.") 
-
-        while True:
-            proportions = input("Please input the proportion of your total time you'd like to spend for each activity in order separtated by a comma and space: (.5, .25, .25): ")
-            proportions = [float(prop) for prop in proportions.split(", ")]
-            if sum(proportions) == 1.0:
-                break
-            print("ERROR: proportions do not add to 1: ", proportions, "Please try again")
-
         if len(subjects) == len(proportions):
             break
         
@@ -87,8 +85,51 @@ def get_user_input():
         print("subjects length is ", len(subjects), "and proportions length is ", len(proportions))
 
     return total_time, subjects, proportions, memorize_or_not_list
-    
-    
+
+class HelperUserInput:
+    def get_time(self):
+        while True:
+            total_time = input("How many total hours do you want to spend learning tomorrow? ")
+            
+            try:
+                total_time = int(total_time)
+            except ValueError:
+                continue
+
+            if len(str(total_time)) <= 2:
+                break
+            print("Wrong format. Please try again. The expected format is a 1-2 digit whole number.")
+        return total_time
+    def get_subjects(self):
+        while True:    
+            subjects = input("Please enter the activities you wish to schedule, seperated by a comma and space. eg. A, B, C: ")
+            subjects = subjects.split(", ")
+            if len(set(subjects)) == len(subjects):
+                break
+            print("There are duplicates in your list. Please try again.")
+
+        return subjects
+    def get_memorize_or_not_list(self, subjects):
+        while True:
+            memorize_or_not_list = input(f"The activites you chose: {subjects}. Please enter 'Y' or 'N' for each activity depending on if it involves memorization. eg. Y, N, Y: ")
+            memorize_or_not_list = memorize_or_not_list.lower().split(", ")
+            if all(mem == "y" or mem == 'n' for mem in memorize_or_not_list) and (len(memorize_or_not_list) == len(subjects)):
+                break
+            print("ERROR: memorize_or_not_list in unexpected format: ", memorize_or_not_list, "Please try again. Make sure the length of the list matches the number of activites entered. You entered ", len(subjects), " subjects.") 
+
+        return memorize_or_not_list
+    def get_proportions(self, subjects):
+        while True:
+            proportions = input("Please input the proportion of your total time you'd like to spend for each activity in order separtated by a comma and space. eg. 0.5, 0.25, 0.25: ")
+            proportions = [float(prop) for prop in proportions.split(", ")]
+            if sum(proportions) == 1.0:
+                break
+            print("ERROR: proportions do not add to 1: ", proportions, "Please try again")
+
+        return proportions
+
+
+
 def calc_times(total_time, subjects, proportions):
 
     #subjects, proportions = zip(*[(tup[0], tup[1]) for tup in subject_proportion_tuples])
@@ -118,36 +159,39 @@ def separate(subject_time_tuples, memorize_or_not_list):
     return subject_time_tuples_mem,  subject_time_tuples_nonmem 
 
 
-def create_events(subject_time_tuples, is_mem = 0):
+#TODO passing in boolean to function is bad practice, fix this method
+def calc_events(self, subject_time_tuples, is_mem):
     """
     input: 
-        
     
+
     output: events in 15m increments to schedule
     """
-    
-    all_events_list = []
 
+    all_events_list = []
     for tup in subject_time_tuples:
         print("current tup: ", tup)
-        events = helper_calc_event(tup[0], tup[1], is_mem)
+        if is_mem:
+            events = calc_event.helper_calc_event_mem(tup[0], tup[1])
+        else:
+            events = calc_event.helper_calc_event_nonmem(tup[0], tup[1])
         all_events_list.extend([events]) 
 
     return all_events_list
 
-#TODO passing in boolean to function is bad practice, fix this method
-#TODO create new sub-functions under calc_event Class 
-def helper_calc_event(subject, time, is_mem = 0):
-    """
-    input: 
-    time: amount of time to practice the subject
-    subject: the activity to create calculate time-blocks
-    
-    output: events in 15m increments to schedule
-    """
-    if is_mem: 
-        #print("is_mem YES: ", is_mem)
-        #print("time and subject: ", time, subject)
+class HelperCalcEvents():
+
+    #TODO create new sub-functions under calc_event Class 
+    def mem(self, subject, time):
+        """
+        input: 
+        time: amount of time to practice the subject
+        subject: the activity to create calculate time-blocks
+        
+        output: events in 15m increments to schedule
+        """
+        events = []
+        time_copy = copy.copy(time) 
         events = []
         time_copy = copy.copy(time)
         while time_copy > 0:
@@ -188,10 +232,16 @@ def helper_calc_event(subject, time, is_mem = 0):
             
         return events
 
-#-------------------------------
-    elif not is_mem: # technically this line is redundant. But helpful for testing
-        #print("event is practice, not mem")
-        #print("time and subject: ", time, subject)
+    def nonmem(self, subject, time):
+        """
+        input: 
+        time: amount of time to practice the subject
+        subject: the activity to create calculate time-blocks
+        
+
+        output: 
+
+        """
         events = []
         time_copy = copy.copy(time)
 
@@ -240,13 +290,16 @@ def helper_calc_event(subject, time, is_mem = 0):
 #     return mixed_list
     
 
-#TODO throw an excpetion if a list of len(1) is passed in 
+#TODO break this up into smaller functions 
 def interleave(events):
     """
     this function will actually be used to interleave nonmem and mem items 
     amongst themselves and then again to merge together
     """
-    if len(events) > 2:
+    if len(events) <= 1:
+        print('events list is length 1 or 0: ', events)
+        raise ValueError
+    elif len(events) > 2:
         print('ENTERING recursion: ', events[1:])
         print()
         interleaved_events = interleave(events[1:])
@@ -281,27 +334,28 @@ def interleave(events):
     return final_order
 
 
-# user_input -> calc_times -> separate -> create_events -> interleave
+# user_input -> calc_times -> separate -> calc_events -> interleave
 
 if __name__ == "__main__":
-    #total_time, subjects, memorize_or_not_list = get_user_input()
-    #print(total_time, subjects, memorize_or_not_list)
+    total_time, subjects, proportions, memorize_or_not_list = get_user_input()
+    print(total_time, subjects, proportions, memorize_or_not_list)
     
-    # ADDED
-    total_time, subjects, proportions, memorize_or_not_list = 8, ['A', 'B', 'X',], [.175, .175, .75], ['y', 'y', 'n'] 
-    
-    subject_time_tuples = calc_times(total_time, subjects, proportions)
-    subject_time_tuples_mem,  subject_time_tuples_nonmem = separate(subject_time_tuples, memorize_or_not_list)
+    # # ADDED
+    # total_time, subjects, proportions, memorize_or_not_list = 8, ['A', 'B', 'X'], [.175, .175, .75], ['y', 'y', 'n'] 
+    # # ADDED
 
-    events_mem = create_events(subject_time_tuples_mem, is_mem = 1)
-    events_nonmem = create_events(subject_time_tuples_nonmem, 0)
-    print("both event sets before interleaving: ")
-    print(events_mem)
-    print(events_nonmem)
+    # subject_time_tuples = calc_times(total_time, subjects, proportions)
+    # subject_time_tuples_mem,  subject_time_tuples_nonmem = separate(subject_time_tuples, memorize_or_not_list)
 
-    sorted_subject_list = sorted(events_mem + events_nonmem, key = len, reverse=True)
+    # events_mem = calc_event.calc_events(subject_time_tuples_mem, is_mem = 1)
+    # events_nonmem = calc_event.calc_events(subject_time_tuples_nonmem, 0)
+    # print("both event sets before interleaving: ")
+    # print(events_mem)
+    # print(events_nonmem)
 
-    interleave(sorted_subject_list)
+    # sorted_subject_list = sorted(events_mem + events_nonmem, key = len, reverse=True)
+
+    # final_order = interleave(sorted_subject_list)
 
 
 
