@@ -160,13 +160,18 @@ def separate(subject_time_tuples, memorize_or_not_list):
 
 
 #TODO passing in boolean to function is bad practice, fix this method
-def calc_events(self, subject_time_tuples, is_mem):
+def calc_events(subject_time_tuples, is_mem):
     """
     input: 
     
 
     output: events in 15m increments to schedule
     """
+#TODO: incomplete - fix the calls to the helper functions 
+    helper_calc_events = HelperCalcEvents()
+    events_mem = helper_calc_events.mem(subject_time_tuples_mem)
+    events_nonmem = helper_calc_events.nonmem(subject_time_tuples_nonmem)
+
 
     all_events_list = []
     for tup in subject_time_tuples:
@@ -179,9 +184,9 @@ def calc_events(self, subject_time_tuples, is_mem):
 
     return all_events_list
 
-class HelperCalcEvents():
+class HelperCalcEvents:
 
-    #TODO create new sub-functions under calc_event Class 
+    #TODO break up these functions into smaller helper functions
     def mem(self, subject, time):
         """
         input: 
@@ -190,12 +195,11 @@ class HelperCalcEvents():
         
         output: events in 15m increments to schedule
         """
+
         events = []
-        time_copy = copy.copy(time) 
-        events = []
-        time_copy = copy.copy(time)
-        while time_copy > 0:
-            if time_copy == 15:
+        time_remaining = copy.copy(time)
+        while time_remaining > 0:
+            if time_remaining == 15:
                 print('last 15m chunk, add to previous recall block')
                 if events:
                     events[-1]['duration'] += 15
@@ -203,21 +207,21 @@ class HelperCalcEvents():
                 elif not events:
                     event_study = {
                     'name' : (subject + " study"),
-                    'duration' : time_copy,
+                    'duration' : time_remaining,
                     }
                     events.append(event_study)
-                time_copy = 0
-            elif time_copy == 30: # if 30m remaining, insert only study time
-                print('last 30m chunk:', time_copy)
+                time_remaining = 0
+            elif time_remaining == 30: # if 30m remaining, insert only study time
+                print('last 30m chunk:', time_remaining)
                 event_study = {
                     'name' : (subject + " study"),
-                    'duration' : time_copy,
+                    'duration' : time_remaining,
                     }
                 events.append(event_study)
-                time_copy = 0
+                time_remaining = 0
 
-            elif time_copy >= 45:
-                print('time greater than 45:', time_copy)
+            elif time_remaining >= 45:
+                print('time greater than 45:', time_remaining)
                 event_study = {
                     'name' : (subject + " study"),
                     'duration' : 30,
@@ -228,44 +232,51 @@ class HelperCalcEvents():
                     }
                 recall_block = {'recall block' : [event_study, event_recall], 'duration' : 45}
                 events.append(recall_block)
-                time_copy -= 45
+                time_remaining -= 45
             
         return events
 
-    def nonmem(self, subject, time):
-        """
-        input: 
-        time: amount of time to practice the subject
-        subject: the activity to create calculate time-blocks
-        
 
-        output: 
+def build_events_for_subject(events_builder_for_subject):
+    """
+    input: 
+    output: 
+    """
 
-        """
-        events = []
-        time_copy = copy.copy(time)
+    while events_builder_for_subject.time_remaining > 0:
+        if events_builder_for_subject.time_remaining >= 60:
+            print('time greater than 1 hour:', events_builder_for_subject.time_remaining)
+            add_practice_event(events_builder_for_subject, 60)
 
-        while time_copy > 0:
+        else:
+            print('Last chunk under 1 hour: ', events_builder_for_subject.time_remaining)
+            add_practice_event(events_builder_for_subject, events_builder_for_subject.time_remaining)
+    
 
-            if time_copy >= 60:
-                print('time greater than 1 hour:', time_copy)
-                event_practice = {
-                    'name' : (subject + " practice"),
-                    'duration' : 60,
-                    }
-                events.extend([event_practice])
-                time_copy -= 60
+def add_practice_event(events_builder_for_subject, new_event_duration):
+    event_practice = {
+        'name' : (events_builder_for_subject.subject + " practice"),
+        'duration' : new_event_duration,
+        }
+    events_builder_for_subject.events.extend([event_practice])
+    events_builder_for_subject.time_remaining -= new_event_duration
+    print('time remaining after adjustment: ', events_builder_for_subject.time_remaining)
 
-            else:
-                print('Last chunk under 1 hour: ', time_copy)
-                event_practice = {
-                    'name' : (subject + " practice"),
-                    'duration' : time_copy,
-                    }
-                events.append(event_practice)
-                time_copy = 0
-        
-        return events
+    #return events_builder_for_subject
+
+class ListOfEvents:
+    def __init__(self, subject, study_type, time_remaining):
+        self.subject = subject
+        self.study_type = study_type
+        self.time_remaining = time_remaining
+        self.events = []
+
+# combine object class and helper function class - later
+# convert functions to adding an event of each type 
+# A_events = ListOfEvents(A, 60)
+# A_events.add_event()
+
+
 
 #TODO probably delete mix_lists function - it's better to sort descending on length      
 # def mix_lists(events_1, events_2):
@@ -337,18 +348,17 @@ def interleave(events):
 # user_input -> calc_times -> separate -> calc_events -> interleave
 
 if __name__ == "__main__":
-    total_time, subjects, proportions, memorize_or_not_list = get_user_input()
-    print(total_time, subjects, proportions, memorize_or_not_list)
+    # total_time, subjects, proportions, memorize_or_not_list = get_user_input()
+    # print(total_time, subjects, proportions, memorize_or_not_list)
     
-    # # ADDED
-    # total_time, subjects, proportions, memorize_or_not_list = 8, ['A', 'B', 'X'], [.175, .175, .75], ['y', 'y', 'n'] 
-    # # ADDED
+    # ADDED
+    total_time, subjects, proportions, memorize_or_not_list = 8, ['A', 'B', 'X'], [.175, .175, .75], ['y', 'y', 'n'] 
+    # ADDED
 
+    #TODO: fix all of these calls 
     # subject_time_tuples = calc_times(total_time, subjects, proportions)
     # subject_time_tuples_mem,  subject_time_tuples_nonmem = separate(subject_time_tuples, memorize_or_not_list)
 
-    # events_mem = calc_event.calc_events(subject_time_tuples_mem, is_mem = 1)
-    # events_nonmem = calc_event.calc_events(subject_time_tuples_nonmem, 0)
     # print("both event sets before interleaving: ")
     # print(events_mem)
     # print(events_nonmem)
@@ -357,7 +367,10 @@ if __name__ == "__main__":
 
     # final_order = interleave(sorted_subject_list)
 
+    events_builder_for_subject = ListOfEvents('A', 'nonmem', 90)
+    build_events_for_subject(events_builder_for_subject)
 
+    print(vars(events_builder_for_subject))
 
     ## LEAVING OFF HERE: 
     # go through and create classes and more sub-functions. (<30 lines per func)
