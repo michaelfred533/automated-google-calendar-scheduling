@@ -63,7 +63,7 @@ class practice(event):
 
     pass 
 
-
+#TODO: create separate function for converting study_type_list?
 def get_user_input():
     """
     get user input for activities and what type of activities they are.
@@ -84,7 +84,14 @@ def get_user_input():
         print("ERROR: The number of activities and the number of proportions entered do not match. Please try again.")
         print("subjects length is ", len(subjects), "and proportions length is ", len(proportions))
 
-    return total_time, subjects, proportions, memorize_or_not_list
+    study_type_list = []
+    for if_mem in memorize_or_not_list:
+        if if_mem:
+            study_type_list.append('memorize')
+        else:
+            study_type_list.append('practice')
+
+    return total_time, subjects, proportions, study_type_list
 
 class HelperUserInput:
     def get_time(self):
@@ -128,61 +135,49 @@ class HelperUserInput:
 
         return proportions
 
+def create_event_builders_for_all_subjects(subjects, study_type_list):
+    builders_for_all_subjects = []
+    for sub, type, in zip(subjects, study_type_list):        
+        builders_for_all_subjects.append(EventsBuilderForASubject(sub, type, None))
 
+    return builders_for_all_subjects
 
-def calc_times(total_time, subjects, proportions):
+#TODO: convert to only 2 inputs, instead of 3
+def calc_time_for_each_subject(builders_for_all_subjects, total_time, proportions):
 
     #subjects, proportions = zip(*[(tup[0], tup[1]) for tup in subject_proportion_tuples])
 
     total_time = total_time * 60 # convert hours to minutes
 
-    subject_time_tuples = []
-    for sub, prop in zip(subjects, proportions):
+    for builder, prop in zip(builders_for_all_subjects, proportions):
         time = round((total_time * prop) / 15) * 15 # round time to nearest 15min multiple
-        
-        subject_time_tuples.append((sub, time))
+        builder.time_remaining = time
     
-    return subject_time_tuples
+    return builders_for_all_subjects
 
-def separate(subject_time_tuples, memorize_or_not_list):
+def sort_builders_by_subject_type(builders_for_all_subjects):
 
-    subject_time_tuples_mem = []
-    subject_time_tuples_nonmem = []
-    for tup, mem in zip(subject_time_tuples, memorize_or_not_list):
-        
-        if mem == "n":
-            subject_time_tuples_nonmem.append(tup)
-        elif mem == "y":
-            subject_time_tuples_mem.append(tup)
-        else: print("mem in unexpected format: ", mem) # NOTE: this line should never fire because of the earlier check
+    builders_sorted_by_type_dict = {}
+    for builder in builders_for_all_subjects:
+        if builder.study_type in builders_sorted_by_type_dict.keys():
+            builders_sorted_by_type_dict[builder.study_type].append(builder)
+        else:
+            builders_sorted_by_type_dict[builder.study_type] = [builder]
 
-    return subject_time_tuples_mem,  subject_time_tuples_nonmem 
+    return builders_sorted_by_type_dict 
 
 
 #TODO passing in boolean to function is bad practice, fix this method
-def calc_events(subject_time_tuples, is_mem):
+def build_events_for_all_subjects(builders_sorted_by_type_dict):
     """
     input: 
-    
-
-    output: events in 15m increments to schedule
+    output:
     """
-#TODO: incomplete - fix the calls to the helper functions 
-    helper_calc_events = HelperCalcEvents()
-    events_mem = helper_calc_events.mem(subject_time_tuples_mem)
-    events_nonmem = helper_calc_events.nonmem(subject_time_tuples_nonmem)
-
-
-    all_events_list = []
-    for tup in subject_time_tuples:
-        print("current tup: ", tup)
-        if is_mem:
-            events = calc_event.helper_calc_event_mem(tup[0], tup[1])
-        else:
-            events = calc_event.helper_calc_event_nonmem(tup[0], tup[1])
-        all_events_list.extend([events]) 
-
-    return all_events_list
+    for builder in builders_sorted_by_type_dict['memorize']:
+        #build_events_for_memorize_subject(builder)
+        pass
+    for builder in builders_sorted_by_type_dict['practice']:
+        build_events_for_practice_subject(builder)        
 
 class HelperCalcEvents:
 
@@ -236,14 +231,13 @@ class HelperCalcEvents:
             
         return events
 
-
-def build_events_for_subject(events_builder_for_subject):
+def build_events_for_practice_subject(events_builder_for_subject):
     """
     input: 
     output: 
     """
-
     while events_builder_for_subject.time_remaining > 0:
+
         if events_builder_for_subject.time_remaining >= 60:
             print('time greater than 1 hour:', events_builder_for_subject.time_remaining)
             add_practice_event(events_builder_for_subject, 60)
@@ -264,7 +258,8 @@ def add_practice_event(events_builder_for_subject, new_event_duration):
 
     #return events_builder_for_subject
 
-class ListOfEvents:
+
+class EventsBuilderForASubject:
     def __init__(self, subject, study_type, time_remaining):
         self.subject = subject
         self.study_type = study_type
@@ -273,7 +268,7 @@ class ListOfEvents:
 
 # combine object class and helper function class - later
 # convert functions to adding an event of each type 
-# A_events = ListOfEvents(A, 60)
+# A_events = EventsBuilderForASubject(A, 60)
 # A_events.add_event()
 
 
@@ -345,19 +340,25 @@ def interleave(events):
     return final_order
 
 
-# user_input -> calc_times -> separate -> calc_events -> interleave
-
 if __name__ == "__main__":
     # total_time, subjects, proportions, memorize_or_not_list = get_user_input()
     # print(total_time, subjects, proportions, memorize_or_not_list)
     
     # ADDED
-    total_time, subjects, proportions, memorize_or_not_list = 8, ['A', 'B', 'X'], [.175, .175, .75], ['y', 'y', 'n'] 
+    total_time, subjects, proportions, study_type_list = 3, ['A', 'B', 'X'], [.33, .33, .34], ['memorize', 'memorize', 'practice'] 
     # ADDED
 
-    #TODO: fix all of these calls 
-    # subject_time_tuples = calc_times(total_time, subjects, proportions)
-    # subject_time_tuples_mem,  subject_time_tuples_nonmem = separate(subject_time_tuples, memorize_or_not_list)
+    builders_for_all_subjects = create_event_builders_for_all_subjects(subjects, study_type_list)
+    calc_time_for_each_subject(builders_for_all_subjects, total_time, proportions)
+    
+
+    builders_sorted_by_type_dict = sort_builders_by_subject_type(builders_for_all_subjects)
+    print(builders_sorted_by_type_dict)
+
+    build_events_for_all_subjects(builders_sorted_by_type_dict)
+    for builder in builders_for_all_subjects:
+        print(vars(builder))
+
 
     # print("both event sets before interleaving: ")
     # print(events_mem)
@@ -367,15 +368,11 @@ if __name__ == "__main__":
 
     # final_order = interleave(sorted_subject_list)
 
-    events_builder_for_subject = ListOfEvents('A', 'nonmem', 90)
-    build_events_for_subject(events_builder_for_subject)
-
-    print(vars(events_builder_for_subject))
 
     ## LEAVING OFF HERE: 
     # go through and create classes and more sub-functions. (<30 lines per func)
-    # create checks for only 1 type of study
-    # create checks for 1 subject 
+    # interleave() - create checks for only 1 type of study
+    # interleave() - create checks for 1 subject 
 
 
 """
