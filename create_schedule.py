@@ -40,19 +40,10 @@ SCOPES = ["https://www.googleapis.com/auth/calendar.readonly"]
 
 #TODO: fill out this class 
 class event:
-
-    def set_duration():
-        pass
-    def get_duration():
-        pass
-    def set_name():
-        pass
-    def get_name():
-        pass 
-    def set_session_type():
-        pass
-    def get_session_type():
-        pass 
+    #duration():
+    #name():
+    #session_type():
+    pass
 class recall(event):
     
     pass
@@ -69,7 +60,51 @@ def get_user_input():
     get user input for activities and what type of activities they are.
     whether to include free-recall sessions or not
     """
-    
+    class HelperUserInput:
+        def get_time(self):
+            while True:
+                total_time = input("How many total hours do you want to spend learning tomorrow? ")
+                
+                try:
+                    total_time = int(total_time)
+                except ValueError:
+                    continue
+
+                if len(str(total_time)) <= 2:
+                    break
+                print("Wrong format. Please try again. The expected format is a 1-2 digit whole number.")
+            
+            total_time = total_time * 60
+            return total_time
+        
+        def get_topics(self):
+            while True:    
+                topics = input("Please enter the activities you wish to schedule, seperated by a comma and space. eg. A, B, C: ")
+                topics = topics.split(", ")
+                if len(set(topics)) == len(topics):
+                    break
+                print("There are duplicates in your list. Please try again.")
+
+            return topics
+        def get_study_type_list(self, topics):
+            while True:
+                study_type_list = input(f"The activites you chose: {topics}. Please enter the type for each activity (the current types are 'memorize' and 'practice'). eg. memorize, practice, practice: ")
+                study_type_list = study_type_list.lower().split(", ")
+                if all(study_type == "memorize" or study_type == 'practice' for study_type in study_type_list) and (len(study_type_list) == len(topics)):
+                    break
+                print("ERROR: study_type_list in unexpected format: ", study_type_list, "Please try again. Make sure the length of the list matches the number of activites entered. You entered ", len(topics), " topics.") 
+
+            return study_type_list
+        def get_proportions(self, topics):
+            while True:
+                proportions = input("Please input the proportion of your total time you'd like to spend for each activity in order separtated by a comma and space. eg. 0.5, 0.25, 0.25: ")
+                proportions = [float(prop) for prop in proportions.split(", ")]
+                if sum(proportions) == 1.0:
+                    break
+                print("ERROR: proportions do not add to 1: ", proportions, "Please try again")
+
+            return proportions
+
     helper = HelperUserInput()
 
     user_input_info = {}
@@ -95,52 +130,6 @@ class TopicInfo:
         self.proportion = proportion
         self.time_remaining = time_remaining
         self.events = []
-
-class HelperUserInput:
-    def get_time(self):
-        while True:
-            total_time = input("How many total hours do you want to spend learning tomorrow? ")
-            
-            try:
-                total_time = int(total_time)
-            except ValueError:
-                continue
-
-            if len(str(total_time)) <= 2:
-                break
-            print("Wrong format. Please try again. The expected format is a 1-2 digit whole number.")
-        
-        total_time = total_time * 60
-        return total_time
-    
-    def get_topics(self):
-        while True:    
-            topics = input("Please enter the activities you wish to schedule, seperated by a comma and space. eg. A, B, C: ")
-            topics = topics.split(", ")
-            if len(set(topics)) == len(topics):
-                break
-            print("There are duplicates in your list. Please try again.")
-
-        return topics
-    def get_study_type_list(self, topics):
-        while True:
-            study_type_list = input(f"The activites you chose: {topics}. Please enter the type for each activity (the current types are 'memorize' and 'practice'). eg. memorize, practice, practice: ")
-            study_type_list = study_type_list.lower().split(", ")
-            if all(study_type == "memorize" or study_type == 'practice' for study_type in study_type_list) and (len(study_type_list) == len(topics)):
-                break
-            print("ERROR: study_type_list in unexpected format: ", study_type_list, "Please try again. Make sure the length of the list matches the number of activites entered. You entered ", len(topics), " topics.") 
-
-        return study_type_list
-    def get_proportions(self, topics):
-        while True:
-            proportions = input("Please input the proportion of your total time you'd like to spend for each activity in order separtated by a comma and space. eg. 0.5, 0.25, 0.25: ")
-            proportions = [float(prop) for prop in proportions.split(", ")]
-            if sum(proportions) == 1.0:
-                break
-            print("ERROR: proportions do not add to 1: ", proportions, "Please try again")
-
-        return proportions
-
 
 def initialize_topic_info(user_input_info):
     def calculate_times_for_topics(user_input_info):
@@ -172,8 +161,6 @@ def group_topic_info_by_type(topic_info_objects):
 
     return topic_info_grouped_by_type_dict 
 
-
-#TODO passing in boolean to function is bad practice, fix this method
 def build_events_for_all_topics(topic_info_grouped_by_type_dict):
     """
     input: 
@@ -185,63 +172,23 @@ def build_events_for_all_topics(topic_info_grouped_by_type_dict):
     for topic_info in topic_info_grouped_by_type_dict['practice']:
         build_events_for_practice_topic(topic_info)        
 
-class HelperCalcEvents:
-
-    #TODO break up these functions into smaller helper functions
-    def mem(self, topic, time):
-        """
-        input: 
-        time: amount of time to practice the topic
-        topic: the activity to create calculate time-blocks
-        
-        output: events in 15m increments to schedule
-        """
-
-        events = []
-        time_remaining = copy.copy(time)
-        while time_remaining > 0:
-            if time_remaining == 15:
-                print('last 15m chunk, add to previous recall block')
-                if events:
-                    events[-1]['duration'] += 15
-                    events[-1]['recall block'][0]['duration'] += 15
-                elif not events:
-                    event_study = {
-                    'name' : (topic + " study"),
-                    'duration' : time_remaining,
-                    }
-                    events.append(event_study)
-                time_remaining = 0
-            elif time_remaining == 30: # if 30m remaining, insert only study time
-                print('last 30m chunk:', time_remaining)
-                event_study = {
-                    'name' : (topic + " study"),
-                    'duration' : time_remaining,
-                    }
-                events.append(event_study)
-                time_remaining = 0
-
-            elif time_remaining >= 45:
-                print('time greater than 45:', time_remaining)
-                event_study = {
-                    'name' : (topic + " study"),
-                    'duration' : 30,
-                    }
-                event_recall = {
-                    'name' : (topic + " recall"),
-                    'duration' : 15,
-                    }
-                recall_block = {'recall block' : [event_study, event_recall], 'duration' : 45}
-                events.append(recall_block)
-                time_remaining -= 45
-            
-        return events
-
+#TODO create class for events so that you can use same build_events function for all types of events
+# then, 
 def build_events_for_practice_topic(topic_info):
     """
     input: 
     output: 
     """
+
+    def add_practice_event(topic_info, new_event_duration):
+        event_practice = {
+            'name' : (topic_info.topic + " practice"),
+            'duration' : new_event_duration,
+            }
+        topic_info.events.extend([event_practice])
+        topic_info.time_remaining -= new_event_duration
+        print('time remaining after adjustment: ', topic_info.time_remaining)
+
     while topic_info.time_remaining > 0:
 
         if topic_info.time_remaining >= 60:
@@ -252,17 +199,43 @@ def build_events_for_practice_topic(topic_info):
             print('Last chunk under 1 hour: ', topic_info.time_remaining)
             add_practice_event(topic_info, topic_info.time_remaining)
     
+def build_events_for_memorize_topic(topic_info):
+    
+    def add_memorize_event(topic_info, new_event_duration):
+            
+            print('time remaining: ', topic_info.time_remaining)
 
-def add_practice_event(topic_info, new_event_duration):
-    event_practice = {
-        'name' : (topic_info.topic + " practice"),
-        'duration' : new_event_duration,
-        }
-    topic_info.events.extend([event_practice])
-    topic_info.time_remaining -= new_event_duration
-    print('time remaining after adjustment: ', topic_info.time_remaining)
+            # recall duration will always be 15, the rest is studying
+            study_duration = new_event_duration - 15
 
+            event_study = {
+                'name' : (topic_info.topic + " study"),
+                'duration' : study_duration,
+                }
+            event_recall = {
+                'name' : (topic_info.topic + " recall"),
+                'duration' : 15,
+                }
+            recall_block = {'recall block' : [event_study, event_recall], 'duration' : new_event_duration}
+            topic_info.events.append(recall_block)
+            topic_info.time_remaining -= new_event_duration
+        
+    while topic_info.time_remaining > 0:
 
+        # if topic_info.time_remaining == 15:
+        #     print('15 min remaining:', topic_info.time_remaining)
+        #     add_memorize_event(topic_info, )
+
+        if topic_info.time_remaining == 60:
+            add_memorize_event(topic_info, 60)
+        
+        else:
+            new_event_duration = min(45, topic_info.time_remaining)
+            add_memorize_event(topic_info, new_event_duration) 
+
+        print(topic_info.events)
+        
+        
 #TODO probably delete mix_lists function - it's better to sort descending on length      
 # def mix_lists(events_1, events_2):
 #     """
@@ -338,6 +311,7 @@ if __name__ == "__main__":
     user_input_info = {}
     user_input_info['total_time'], user_input_info['topics'], user_input_info['proportions'], user_input_info['study_type_list'] = 180, ['A', 'B', 'X'], [.33, .33, .34], ['memorize', 'memorize', 'practice'] 
     # ADDED
+
 
     topic_info_objects = initialize_topic_info(user_input_info)
 
