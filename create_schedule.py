@@ -39,20 +39,31 @@ SCOPES = ["https://www.googleapis.com/auth/calendar.readonly"]
 # ----------------------------------------------------------------------------------------------------------------
 
 #TODO: fill out this class 
-class event:
-    #duration():
-    #name():
-    #session_type():
-    pass
-class recall(event):
-    
-    pass
-class practice(event):
+class Event:
     def __init__(self, topic, duration):
-        self.duration = duration
         self.topic = topic
+        self.duration = duration
+    
+    def __str__(self):
+        return f"Topic: {self.topic}, Duration: {self.duration}"
 
-    pass 
+class MemoryEvent(Event):
+    def __init__(self):
+        self.study_type = 'memory'
+
+    def __str__(self):
+        parent_string = super().__str__()
+        return f"{parent_string}, Study Type: {self.study_type}"
+    
+class PracticeEvent(Event):
+    def __init__(self, topic, duration):
+        super().__init__(topic, duration)
+        self.study_type = 'practice'
+
+    def __str__(self):
+        parent_string = super().__str__()
+        return f"{parent_string}, Study Type: {self.study_type}"
+
 
 #TODO: create separate function for converting study_type_list?
 def get_user_input():
@@ -76,7 +87,7 @@ def get_user_input():
             
             total_time = total_time * 60
             return total_time
-        
+
         def get_topics(self):
             while True:    
                 topics = input("Please enter the activities you wish to schedule, seperated by a comma and space. eg. A, B, C: ")
@@ -88,9 +99,9 @@ def get_user_input():
             return topics
         def get_study_type_list(self, topics):
             while True:
-                study_type_list = input(f"The activites you chose: {topics}. Please enter the type for each activity (the current types are 'memorize' and 'practice'). eg. memorize, practice, practice: ")
+                study_type_list = input(f"The activites you chose: {topics}. Please enter the type for each activity (the current types are 'memory' and 'practice'). eg. memory, practice, practice: ")
                 study_type_list = study_type_list.lower().split(", ")
-                if all(study_type == "memorize" or study_type == 'practice' for study_type in study_type_list) and (len(study_type_list) == len(topics)):
+                if all(study_type == "memory" or study_type == 'practice' for study_type in study_type_list) and (len(study_type_list) == len(topics)):
                     break
                 print("ERROR: study_type_list in unexpected format: ", study_type_list, "Please try again. Make sure the length of the list matches the number of activites entered. You entered ", len(topics), " topics.") 
 
@@ -131,6 +142,11 @@ class TopicInfo:
         self.time_remaining = time_remaining
         self.events = []
 
+    def __str__(self):
+        event_list = "\n".join([str(event) for event in self.events])
+        return f"Topic: {self.topic}, Study Type: {self.study_type}, Proportion: {self.proportion}, Time Remaining: {self.time_remaining}\nEvents:\n{event_list}"
+
+
 def initialize_topic_info(user_input_info):
     def calculate_times_for_topics(user_input_info):
 
@@ -166,14 +182,12 @@ def build_events_for_all_topics(topic_info_grouped_by_type_dict):
     input: 
     output:
     """
-    for topic_info in topic_info_grouped_by_type_dict['memorize']:
-        #build_events_for_memorize_topic(topic_info)
+    for topic_info in topic_info_grouped_by_type_dict['memory']:
+        #build_events_for_memory_topic(topic_info)
         pass
     for topic_info in topic_info_grouped_by_type_dict['practice']:
         build_events_for_practice_topic(topic_info)        
 
-#TODO create class for events so that you can use same build_events function for all types of events
-# then, 
 def build_events_for_practice_topic(topic_info):
     """
     input: 
@@ -181,27 +195,28 @@ def build_events_for_practice_topic(topic_info):
     """
 
     def add_practice_event(topic_info, new_event_duration):
-        event_practice = {
-            'name' : (topic_info.topic + " practice"),
-            'duration' : new_event_duration,
-            }
+        # event_practice = {
+        #     'name' : (topic_info.topic + " practice"),
+        #     'duration' : new_event_duration,
+        #     }
+        
+        event_practice = PracticeEvent(topic_info.topic, new_event_duration)
+
         topic_info.events.extend([event_practice])
         topic_info.time_remaining -= new_event_duration
-        print('time remaining after adjustment: ', topic_info.time_remaining)
+        print('HERE event: ', event_practice)
 
     while topic_info.time_remaining > 0:
 
         if topic_info.time_remaining >= 60:
-            print('time greater than 1 hour:', topic_info.time_remaining)
             add_practice_event(topic_info, 60)
 
         else:
-            print('Last chunk under 1 hour: ', topic_info.time_remaining)
             add_practice_event(topic_info, topic_info.time_remaining)
     
-def build_events_for_memorize_topic(topic_info):
+def build_events_for_memory_topic(topic_info):
     
-    def add_memorize_event(topic_info, new_event_duration):
+    def add_memory_event(topic_info, new_event_duration):
             
             print('time remaining: ', topic_info.time_remaining)
 
@@ -222,16 +237,12 @@ def build_events_for_memorize_topic(topic_info):
         
     while topic_info.time_remaining > 0:
 
-        # if topic_info.time_remaining == 15:
-        #     print('15 min remaining:', topic_info.time_remaining)
-        #     add_memorize_event(topic_info, )
-
         if topic_info.time_remaining == 60:
-            add_memorize_event(topic_info, 60)
+            add_memory_event(topic_info, 60)
         
         else:
             new_event_duration = min(45, topic_info.time_remaining)
-            add_memorize_event(topic_info, new_event_duration) 
+            add_memory_event(topic_info, new_event_duration) 
 
         print(topic_info.events)
         
@@ -309,7 +320,7 @@ if __name__ == "__main__":
 
     # ADDED
     user_input_info = {}
-    user_input_info['total_time'], user_input_info['topics'], user_input_info['proportions'], user_input_info['study_type_list'] = 180, ['A', 'B', 'X'], [.33, .33, .34], ['memorize', 'memorize', 'practice'] 
+    user_input_info['total_time'], user_input_info['topics'], user_input_info['proportions'], user_input_info['study_type_list'] = 180, ['A', 'B', 'X'], [.33, .33, .34], ['memory', 'memory', 'practice'] 
     # ADDED
 
 
@@ -320,7 +331,7 @@ if __name__ == "__main__":
 
     build_events_for_all_topics(topic_info_grouped_by_type_dict)
     for topic_info in topic_info_objects:
-        print(vars(topic_info))
+        print(topic_info)
 
 # -------------- TODO: fix these calls
     # print("both event sets before interleaving: ")
@@ -338,19 +349,8 @@ if __name__ == "__main__":
     # interleave() - create checks for 1 topic 
 
 
-"""
-notes:
 
-if you want to change how different mem topics and non-mem topics are dispursed, 
-tweak the more/less logic flow in interleave() function 
-
-"""
-
-
-
-
-
-
+#---------------------------------------
 
 
 # def create_events():

@@ -124,7 +124,7 @@ class test_create(unittest.TestCase):
     def test_build_events_memorize_topic(self):
 
         #input:
-        info = {'total_time' : 120, 'topics' : ['A'], 'proportions' : [1], 'study_type_list' : ['memorize']}
+        info = {'total_time' : 105, 'topics' : ['A'], 'proportions' : [1], 'study_type_list' : ['memorize']}
         input = create_schedule.initialize_topic_info(info)
         print(vars(input[0]))
 
