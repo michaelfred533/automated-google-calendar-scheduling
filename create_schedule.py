@@ -40,30 +40,26 @@ SCOPES = ["https://www.googleapis.com/auth/calendar.readonly"]
 
 #TODO: fill out this class 
 class Event:
-    def __init__(self, topic, duration):
+    def __init__(self, topic, duration, study_type):
         self.topic = topic
         self.duration = duration
-    
-    def __str__(self):
-        return f"Topic: {self.topic}, Duration: {self.duration}"
-
-class MemoryEvent(Event):
-    def __init__(self):
-        self.study_type = 'memory'
+        self.study_type = study_type
 
     def __str__(self):
-        parent_string = super().__str__()
-        return f"{parent_string}, Study Type: {self.study_type}"
-    
-class PracticeEvent(Event):
-    def __init__(self, topic, duration):
-        super().__init__(topic, duration)
-        self.study_type = 'practice'
+        return f"Topic: {self.topic}, Duration: {self.duration}, Study Type: {self.study_type}"
+
+class MemoryBlockEvent(Event):
+    def __init__(self, study_duration, recall_duration):
+        self.study_type = 'memory block'
+        events = {
+            'study_event' : Event(self.topic, study_duration, 'study'),
+            'recall_event' : Event(self.topic, recall_duration, 'recall')
+        }       
 
     def __str__(self):
         parent_string = super().__str__()
-        return f"{parent_string}, Study Type: {self.study_type}"
-
+        #TODO
+        
 
 #TODO: create separate function for converting study_type_list?
 def get_user_input():
@@ -195,13 +191,8 @@ def build_events_for_practice_topic(topic_info):
     """
 
     def add_practice_event(topic_info, new_event_duration):
-        # event_practice = {
-        #     'name' : (topic_info.topic + " practice"),
-        #     'duration' : new_event_duration,
-        #     }
-        
-        event_practice = PracticeEvent(topic_info.topic, new_event_duration)
 
+        event_practice = Event(topic_info.topic, new_event_duration, topic_info.study_type)
         topic_info.events.extend([event_practice])
         topic_info.time_remaining -= new_event_duration
         print('HERE event: ', event_practice)
@@ -214,11 +205,13 @@ def build_events_for_practice_topic(topic_info):
         else:
             add_practice_event(topic_info, topic_info.time_remaining)
     
+#TODO: implement MemoryBlockEvent class functionality    
 def build_events_for_memory_topic(topic_info):
     
     def add_memory_event(topic_info, new_event_duration):
             
-            print('time remaining: ', topic_info.time_remaining)
+            #TODO: implement class functionality for memory events
+            #event_practice = Event(topic_info.topic, new_event_duration, topic_info.study_type)
 
             # recall duration will always be 15, the rest is studying
             study_duration = new_event_duration - 15
@@ -231,8 +224,8 @@ def build_events_for_memory_topic(topic_info):
                 'name' : (topic_info.topic + " recall"),
                 'duration' : 15,
                 }
-            recall_block = {'recall block' : [event_study, event_recall], 'duration' : new_event_duration}
-            topic_info.events.append(recall_block)
+            memory_block = {'recall block' : [event_study, event_recall], 'duration' : new_event_duration}
+            topic_info.events.append(memory_block)
             topic_info.time_remaining -= new_event_duration
         
     while topic_info.time_remaining > 0:
@@ -318,10 +311,10 @@ if __name__ == "__main__":
     # user_input_info = get_user_input()
     # print(user_input_info)
 
-    # ADDED
+    # ADDEDADDEDADDEDADDEDADDED
     user_input_info = {}
     user_input_info['total_time'], user_input_info['topics'], user_input_info['proportions'], user_input_info['study_type_list'] = 180, ['A', 'B', 'X'], [.33, .33, .34], ['memory', 'memory', 'practice'] 
-    # ADDED
+    # ADDEDADDEDADDEDADDEDADDED 
 
 
     topic_info_objects = initialize_topic_info(user_input_info)
