@@ -37,8 +37,7 @@ SCOPES = ["https://www.googleapis.com/auth/calendar.readonly"]
 # print(len(events), events[0])
 
 # ----------------------------------------------------------------------------------------------------------------
-
-#TODO: fill out this class 
+ 
 class Event:
     def __init__(self, topic, duration, study_type):
         self.topic = topic
@@ -49,16 +48,14 @@ class Event:
         return f"Topic: {self.topic}, Duration: {self.duration}, Study Type: {self.study_type}"
 
 class MemoryBlockEvent(Event):
-    def __init__(self, study_duration, recall_duration):
+    def __init__(self, topic, duration, study_type, study_duration, recall_duration):
+        super().__init__(topic, duration, study_type)
         self.study_type = 'memory block'
-        events = {
-            'study_event' : Event(self.topic, study_duration, 'study'),
-            'recall_event' : Event(self.topic, recall_duration, 'recall')
-        }       
+        self.study_event = Event(self.topic, study_duration, 'study')
+        self.recall_event = Event(self.topic, recall_duration, 'recall')       
 
     def __str__(self):
-        parent_string = super().__str__()
-        #TODO
+        return f"MemoryBlockEvent: \n\tTopic: {self.topic}, Duration: {self.duration} \n\tStudy Event: ({self.study_event}) \n\tRecall Event: ({self.recall_event})"
         
 
 #TODO: create separate function for converting study_type_list?
@@ -140,7 +137,7 @@ class TopicInfo:
 
     def __str__(self):
         event_list = "\n".join([str(event) for event in self.events])
-        return f"Topic: {self.topic}, Study Type: {self.study_type}, Proportion: {self.proportion}, Time Remaining: {self.time_remaining}\nEvents:\n{event_list}"
+        return f"Topic: {self.topic}, Study Type: {self.study_type}, Proportion: {self.proportion}, Time Remaining: {self.time_remaining}\nEvents:\n\t{event_list}"
 
 
 def initialize_topic_info(user_input_info):
@@ -178,9 +175,10 @@ def build_events_for_all_topics(topic_info_grouped_by_type_dict):
     input: 
     output:
     """
+    #TODO could rewrite this code to support more than 2 types
     for topic_info in topic_info_grouped_by_type_dict['memory']:
-        #build_events_for_memory_topic(topic_info)
-        pass
+        build_events_for_memory_topic(topic_info)
+
     for topic_info in topic_info_grouped_by_type_dict['practice']:
         build_events_for_practice_topic(topic_info)        
 
@@ -190,12 +188,11 @@ def build_events_for_practice_topic(topic_info):
     output: 
     """
 
-    def add_practice_event(topic_info, new_event_duration):
+    def add_practice_event(topic_info, practice_event_duration):
 
-        event_practice = Event(topic_info.topic, new_event_duration, topic_info.study_type)
+        event_practice = Event(topic_info.topic, practice_event_duration, topic_info.study_type)
         topic_info.events.extend([event_practice])
-        topic_info.time_remaining -= new_event_duration
-        print('HERE event: ', event_practice)
+        topic_info.time_remaining -= practice_event_duration
 
     while topic_info.time_remaining > 0:
 
@@ -205,39 +202,28 @@ def build_events_for_practice_topic(topic_info):
         else:
             add_practice_event(topic_info, topic_info.time_remaining)
     
-#TODO: implement MemoryBlockEvent class functionality    
 def build_events_for_memory_topic(topic_info):
     
-    def add_memory_event(topic_info, new_event_duration):
+    def add_memory_block_event(topic_info, memory_block_duration):
             
-            #TODO: implement class functionality for memory events
-            #event_practice = Event(topic_info.topic, new_event_duration, topic_info.study_type)
+            recall_duration = 15
+            study_duration = memory_block_duration - recall_duration
 
-            # recall duration will always be 15, the rest is studying
-            study_duration = new_event_duration - 15
+            memory_block = MemoryBlockEvent(topic_info.topic, memory_block_duration, topic_info.study_type, study_duration, recall_duration)
 
-            event_study = {
-                'name' : (topic_info.topic + " study"),
-                'duration' : study_duration,
-                }
-            event_recall = {
-                'name' : (topic_info.topic + " recall"),
-                'duration' : 15,
-                }
-            memory_block = {'recall block' : [event_study, event_recall], 'duration' : new_event_duration}
             topic_info.events.append(memory_block)
-            topic_info.time_remaining -= new_event_duration
+            #print(topic_info.events[0])
+            topic_info.time_remaining -= memory_block_duration
         
     while topic_info.time_remaining > 0:
 
         if topic_info.time_remaining == 60:
-            add_memory_event(topic_info, 60)
+            add_memory_block_event(topic_info, 60)
         
         else:
-            new_event_duration = min(45, topic_info.time_remaining)
-            add_memory_event(topic_info, new_event_duration) 
+            memory_block_duration = min(45, topic_info.time_remaining)
+            add_memory_block_event(topic_info, memory_block_duration) 
 
-        print(topic_info.events)
         
         
 #TODO probably delete mix_lists function - it's better to sort descending on length      
@@ -320,11 +306,15 @@ if __name__ == "__main__":
     topic_info_objects = initialize_topic_info(user_input_info)
 
     topic_info_grouped_by_type_dict = group_topic_info_by_type(topic_info_objects)
-    print(topic_info_grouped_by_type_dict)
+    #print(topic_info_grouped_by_type_dict)
 
     build_events_for_all_topics(topic_info_grouped_by_type_dict)
+    
+    print("printing topic info....")
     for topic_info in topic_info_objects:
         print(topic_info)
+
+
 
 # -------------- TODO: fix these calls
     # print("both event sets before interleaving: ")
