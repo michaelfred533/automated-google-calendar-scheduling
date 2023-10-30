@@ -212,9 +212,8 @@ def build_events_for_memory_topic(topic_info):
             memory_block = MemoryBlockEvent(topic_info.topic, memory_block_duration, topic_info.study_type, study_duration, recall_duration)
 
             topic_info.events.append(memory_block)
-            #print(topic_info.events[0])
-            topic_info.time_remaining -= memory_block_duration
-        
+            topic_info.time_remaining -= memory_block_duration    
+    
     while topic_info.time_remaining > 0:
 
         if topic_info.time_remaining == 60:
@@ -223,8 +222,7 @@ def build_events_for_memory_topic(topic_info):
         else:
             memory_block_duration = min(45, topic_info.time_remaining)
             add_memory_block_event(topic_info, memory_block_duration) 
-
-        
+      
         
 #TODO probably delete mix_lists function - it's better to sort descending on length      
 # def mix_lists(events_1, events_2):
@@ -252,9 +250,8 @@ def build_events_for_memory_topic(topic_info):
 #TODO break this up into smaller functions 
 def interleave(events):
     """
-    this function will actually be used to interleave nonmem and mem items 
-    amongst themselves and then again to merge together
     """
+    #TODO: error handling 
     if len(events) <= 1:
         print('events list is length 1 or 0: ', events)
         raise ValueError
@@ -265,17 +262,14 @@ def interleave(events):
         events = [events[0], interleaved_events] # create new list with interleaved events and leftover events
     
     print('EXITING recursion')
-    events_1, events_2 = events[0], events[1]
 
-    if len(events_1) >= len(events_2):
-        events_more, events_less = events_1, events_2
+    if len(events[0]) >= len(events[1]):
+        events_more, events_less = events[0], events[1]
     else:
-        events_more, events_less = events_2, events_1
+        events_more, events_less = events[1], events[0]
 
-    splits = round(len(events_more) / (len(events_less) + 1))
-    if splits == 0:
-        print('changing splits from 0 to 1..')
-        splits = 1
+    # ensures splits is at least 1
+    splits = max(round(len(events_more) / (len(events_less) + 1)), 1)
     print('splits: ', splits)
     
     indexes = [ind for ind in range(splits, len(events_more)) if ind % splits == 0]
@@ -289,7 +283,10 @@ def interleave(events):
         final_order.insert(ind + i, event)
     
 
-    print('Interleave results: ', final_order)
+    print('Interleave results: ')
+    for event in final_order:
+        print(event)
+
     return final_order
 
 
@@ -302,34 +299,29 @@ if __name__ == "__main__":
     user_input_info['total_time'], user_input_info['topics'], user_input_info['proportions'], user_input_info['study_type_list'] = 180, ['A', 'B', 'X'], [.33, .33, .34], ['memory', 'memory', 'practice'] 
     # ADDEDADDEDADDEDADDEDADDED 
 
-
     topic_info_objects = initialize_topic_info(user_input_info)
 
     topic_info_grouped_by_type_dict = group_topic_info_by_type(topic_info_objects)
-    #print(topic_info_grouped_by_type_dict)
+    # print(topic_info_grouped_by_type_dict)
 
     build_events_for_all_topics(topic_info_grouped_by_type_dict)
     
-    print("printing topic info....")
-    for topic_info in topic_info_objects:
-        print(topic_info)
+    # print("printing topic info....")
+    # for topic_info in topic_info_objects:
+    #     print(topic_info)
 
+    all_events_list = []
+    for study_type_list in topic_info_grouped_by_type_dict.values():
+        #print(study_type_list)
+        for topic_info in study_type_list:
+            all_events_list.append(topic_info.events)
+    #print(all_events_list)
+    
+    #TODO: fix interleave function such that 
+    sorted_topic_list = sorted(all_events_list, key = len, reverse=True)
 
-
-# -------------- TODO: fix these calls
-    # print("both event sets before interleaving: ")
-    # print(events_mem)
-    # print(events_nonmem)
-
-    # sorted_topic_list = sorted(events_mem + events_nonmem, key = len, reverse=True)
-
-    # final_order = interleave(sorted_topic_list)
-
-
-    ## LEAVING OFF HERE: 
-    # go through and create classes and more sub-functions. (<30 lines per func)
-    # interleave() - create checks for only 1 type of study
-    # interleave() - create checks for 1 topic 
+    final_order = interleave(sorted_topic_list)
+ 
 
 
 

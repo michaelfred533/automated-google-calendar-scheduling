@@ -52,7 +52,6 @@ class test_create(unittest.TestCase):
         expected = ['B', 'B', 'A', 'B', 'B']
 
         # tests:
-        # ask GPT how to sum
         self.assertEqual(len(result), (len(events_1) + len(events_2)))
         self.assertEqual(result, expected)
 
@@ -70,27 +69,9 @@ class test_create(unittest.TestCase):
         expected = ['C', 'B', 'A', 'C', 'B', 'C']
 
         # tests:
-        # ask GPT how to sum
         self.assertEqual(result, expected)
 
-    # no assert statements in this test yet 
     def test_interleave3(self):
-        # input:
-        len_1, len_2, len_3, len_4 = 1, 2, 3, 4
-        events_1 = ['A'] * len_1
-        events_2 = ['B'] * len_2
-        events_3 = ['Y'] * len_3
-        events_4 = ['Z'] * len_4
-        #events = [events_1, events_2, events_3, events_4]
-        events = [events_3, events_1, events_4, events_2]
-        # result:
-        result = create_schedule.interleave(events)
-        # expected: 
-
-
-        # tests:
-
-    def test_interleave4(self):
         # input:
         lens = [2, 2, 4, 4, 5] 
         events_1 = ['A'] * lens[0]
@@ -101,10 +82,9 @@ class test_create(unittest.TestCase):
 
         events = sorted([events_1, events_2, events_3, events_4, events_5], key=len, reverse = True)
         print(events)
+
         # result:
         result = create_schedule.interleave(events)
-        # expected: 
-
 
         # tests:
         subject_list = ['A', 'B', 'X', 'Y', 'Z']
@@ -118,23 +98,78 @@ class test_create(unittest.TestCase):
                 self.assertTrue(abs(differences[i+1]-differences[i]) <= 1)
                 print(abs(differences[i+1]-differences[i]))
         
+    def test_interleave4(self):
+        # input:
+        lens = [1, 1, 1] 
+        events_1 = ['A'] * lens[0]
+        events_2 = ['B'] * lens[1]
+        events_3 = ['X'] * lens[2]
 
+        events = sorted([events_1, events_2, events_3], key=len, reverse = True)
+        print(events)
+
+        # result:
+        result = create_schedule.interleave(events)
+
+        # tests:
+        subject_list = ['A', 'B', 'X']
+        # makes sure that each element is maximally distributed 
+        for subject in subject_list:
+            indexes = [index for index, value in enumerate(result) if value == subject]
+            differences =[]
+            for i in range(len(indexes)-1):
+                differences.append(indexes[i+1] - indexes[i])
+            for i in range(len(differences)-1):
+                self.assertTrue(abs(differences[i+1]-differences[i]) <= 1)
+                print(abs(differences[i+1]-differences[i]))
+        
     ## ------------------------End of test block---------------------
 
-    def test_build_events_memorize_topic(self):
+    def test_build_events_for_memory_topic1(self):
+        # Create a mock TopicInfo instance for testing
+        topic_info = create_schedule.TopicInfo("Test Topic", "study", 1, 60)
 
-        #input:
-        info = {'total_time' : 105, 'topics' : ['A'], 'proportions' : [1], 'study_type_list' : ['memorize']}
-        input = create_schedule.initialize_topic_info(info)
-        print(vars(input[0]))
+        # Call the function to be tested
+        create_schedule.build_events_for_memory_topic(topic_info)
 
-        #results:
-        result = create_schedule.build_events_for_memorize_topic(input[0])
+        # Assert the changes made by the function
+        print(topic_info.events)
+        self.assertEqual(len(topic_info.events), 1)  # Check if two events are added
 
-        #expected:
-        expected = []
+        # Assert that the added events are MemoryBlockEvent instances
+        for event in topic_info.events:
+            self.assertTrue(isinstance(event, create_schedule.MemoryBlockEvent))
 
-        #tests:
+    def test_build_events_for_memory_topic2(self):
+        # Create a mock TopicInfo instance for testing
+        proportion = 1
+        time_remaining = 90
+        topic_info = create_schedule.TopicInfo("Test Topic", "study", proportion, time_remaining)
+
+        # Call the function to be tested
+        create_schedule.build_events_for_memory_topic(topic_info)
+
+        # Assert the changes made by the function
+        self.assertEqual(len(topic_info.events), 2)  # Check if two events are added
+
+        # Assert that the added events are MemoryBlockEvent instances
+        for event in topic_info.events:
+            self.assertTrue(isinstance(event, create_schedule.MemoryBlockEvent))
+
+    ## ------------------------End of test block---------------------
+    
+    def test_build_events_for_practice_topic1(self):
+        # Create a mock TopicInfo instance for testing
+        proportion = 1
+        time_remaining = 90
+        topic_info = create_schedule.TopicInfo("Test Topic", "practice", proportion, time_remaining)
+
+        # Call the function to be tested
+        create_schedule.build_events_for_memory_topic(topic_info)
+
+        # Assert the changes made by the function
+        self.assertEqual(len(topic_info.events), 2)  # Check if two events are added
+
 
 
 if '__name__' == '__main__':
