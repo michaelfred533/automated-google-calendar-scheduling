@@ -4,6 +4,9 @@ test the function of create_schedule.py
 
 import unittest
 import create_schedule
+import schedule
+
+SCOPES = ["https://www.googleapis.com/auth/calendar.readonly"]
 
 class test_create(unittest.TestCase):
 
@@ -35,6 +38,20 @@ class test_create(unittest.TestCase):
     #     # tests:
     #     self.assertEqual(result, expected)
     #     self.assertEqual(len(result), (len(events_1) + len(events_2)))    
+   
+    ## ------------------------End of test block---------------------
+
+    def test_get_todays_calendar(self):
+
+        start_date = "2023-10-04"
+        end_date = "2023-10-06" 
+
+        service = schedule.access_calendar(SCOPES)
+        events = schedule.get_events(service, start_date, end_date)
+
+        print(events)
+        
+
 
     ## ------------------------End of test block---------------------
 
@@ -100,7 +117,7 @@ class test_create(unittest.TestCase):
         
     def test_interleave4(self):
         # input:
-        lens = [1, 1, 1] 
+        lens = [2, 2, 1] 
         events_1 = ['A'] * lens[0]
         events_2 = ['B'] * lens[1]
         events_3 = ['X'] * lens[2]

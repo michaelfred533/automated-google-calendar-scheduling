@@ -58,7 +58,6 @@ def access_calendar(SCOPES):
     return service
 
 
-
 def get_events(service, start_date, end_date):
     """
     Calls the Google Calendar API and pulls all the events in the calendar from within the date-range specified.

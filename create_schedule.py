@@ -4,6 +4,7 @@
 
 from __future__ import print_function
 import datetime
+from datetime import time
 import os.path
 import pandas as pd
 import logging
@@ -21,20 +22,6 @@ import schedule
 
 
 SCOPES = ["https://www.googleapis.com/auth/calendar.readonly"]
-
-# -------------------------------------------------------------------------
-
-# service = schedule.access_calendar(SCOPES)
-
-
-# logging.basicConfig(level = logging.DEBUG)
-
-# start_date = str(datetime.date.today())
-# end_date = str((datetime.date.today() + datetime.timedelta(days = 2)))
-# logging.info(f"start date is {start_date}")
-# logging.info(f"end date is {end_date}")
-# events = schedule.get_events(service, start_date, end_date)
-# print(len(events), events[0])
 
 # ----------------------------------------------------------------------------------------------------------------
  
@@ -247,7 +234,6 @@ def build_events_for_memory_topic(topic_info):
 #     return mixed_list
     
 
-#TODO break this up into smaller functions 
 def interleave(events):
     """
     """
@@ -289,46 +275,58 @@ def interleave(events):
 
     return final_order
 
-
-if __name__ == "__main__":
-    # user_input_info = get_user_input()
-    # print(user_input_info)
-
-    # ADDEDADDEDADDEDADDEDADDED
-    user_input_info = {}
-    user_input_info['total_time'], user_input_info['topics'], user_input_info['proportions'], user_input_info['study_type_list'] = 180, ['A', 'B', 'X'], [.33, .33, .34], ['memory', 'memory', 'practice'] 
-    # ADDEDADDEDADDEDADDEDADDED 
-
-    topic_info_objects = initialize_topic_info(user_input_info)
-
-    topic_info_grouped_by_type_dict = group_topic_info_by_type(topic_info_objects)
-    # print(topic_info_grouped_by_type_dict)
-
-    build_events_for_all_topics(topic_info_grouped_by_type_dict)
+def create_list_of_events(topic_info_grouped_by_type_dict):
     
-    # print("printing topic info....")
-    # for topic_info in topic_info_objects:
-    #     print(topic_info)
-
     all_events_list = []
     for study_type_list in topic_info_grouped_by_type_dict.values():
-        #print(study_type_list)
         for topic_info in study_type_list:
             all_events_list.append(topic_info.events)
-    #print(all_events_list)
+
+    return all_events_list
+
+def get_todays_calendar():
     
-    #TODO: fix interleave function such that 
-    sorted_topic_list = sorted(all_events_list, key = len, reverse=True)
+    start_date = str(datetime.date.today())
+    end_date = str((datetime.date.today() + datetime.timedelta(days = 2)))
 
-    final_order = interleave(sorted_topic_list)
- 
+    service = schedule.access_calendar(SCOPES)
+    events = schedule.get_events(service, start_date, end_date)
 
+    
 
+    print(events)
 
-#---------------------------------------
+#TODO: LEAVING OFF HERE 
+def schedule_events(all_events_list):
+    
+    #date = datetime.today().date()
+    date = "2023-10-04"
+    next_start_time = datetime.combine(date, time(12,0))
+    end_of_day = datetime.combine(date, time(23,0))
 
+    for event in all_events_list:
+        start_time = next_start_time
+        end_time = start_time + datetime.timedelta(minutes = event.duration)        
 
-# def create_events():
+    # --- GPT code: 
+
+    # Check for overlapping events
+    is_overlap = False
+    for event in existing_events:
+        if new_event.start_time < event.end_time and new_event.end_time > event.start_time:
+            is_overlap = True
+            break
+
+    if is_overlap:
+        print("Event overlaps with an existing event. Cannot add.")
+    else:
+        # Add the new event to the calendar
+        calendar.add_event(new_event)
+        print("Event added to the calendar.")
+
+    # -- END GPT code
+
+# def create_event():
 
 #     # Define the event details
 #     event = {
@@ -341,5 +339,40 @@ if __name__ == "__main__":
 #     # Insert the event into the primary calendar
 #     event = service.events().insert(calendarId='primary', body=event).execute()
 #     print('Event created: %s' % (event.get('htmlLink')))
+
+
+
+#TODO: make REALLY small funcitons - even 1 line if it improved readability
+
+if __name__ == "__main__":
+    # user_input_info = get_user_input()
+
+    # ADDEDADDEDADDEDADDEDADDED
+    user_input_info = {}
+    user_input_info['total_time'], user_input_info['topics'], user_input_info['proportions'], user_input_info['study_type_list'] = 180, ['A', 'B', 'X'], [.33, .33, .34], ['memory', 'memory', 'practice'] 
+    # ADDEDADDEDADDEDADDEDADDED 
+
+    topic_info_objects = initialize_topic_info(user_input_info)
+
+    topic_info_grouped_by_type_dict = group_topic_info_by_type(topic_info_objects)
+
+    build_events_for_all_topics(topic_info_grouped_by_type_dict)
+    
+    # print("printing topic info....")
+    # for topic_info in topic_info_objects:
+    #     print(topic_info)
+
+
+    all_events_list = create_list_of_events(topic_info_grouped_by_type_dict)
+
+    #TODO: should be distributed by type AND topic, right now only by topic
+    sorted_topic_list = sorted(all_events_list, key = len, reverse=True)
+
+    final_order = interleave(sorted_topic_list)
+ 
+
+
+
+#---------------------------------------
 
 
