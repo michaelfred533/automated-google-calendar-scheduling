@@ -277,12 +277,12 @@ def interleave(events):
 
 def create_list_of_events(topic_info_grouped_by_type_dict):
     
-    all_events_list = []
+    new_events_list = []
     for study_type_list in topic_info_grouped_by_type_dict.values():
         for topic_info in study_type_list:
-            all_events_list.append(topic_info.events)
+            new_events_list.append(topic_info.events)
 
-    return all_events_list
+    return new_events_list
 
 def get_todays_calendar():
     
@@ -297,34 +297,43 @@ def get_todays_calendar():
     print(events)
 
 #TODO: LEAVING OFF HERE 
-def schedule_events(all_events_list):
+def schedule_events(new_events_list, existing_events):
     
     #date = datetime.today().date()
-    date = "2023-10-04"
-    next_start_time = datetime.combine(date, time(12,0))
-    end_of_day = datetime.combine(date, time(23,0))
+    next_start_time = datetime.datetime.strptime('2023-10-05T09:00:00-07:00', '%Y-%m-%dT%H:%M:%S%z')
+    end_of_day = datetime.datetime.strptime('2023-10-05T23:00:00-07:00', '%Y-%m-%dT%H:%M:%S%z')
 
-    for event in all_events_list:
-        start_time = next_start_time
-        end_time = start_time + datetime.timedelta(minutes = event.duration)        
+    # existing_events = get_todays_calendar()
+    # for event in existing_events:
+    #     event['start_time'] = event['start']['dateTime']
+    #     event['end_time'] = event['end']['dateTime']
+    #     event['duration'] = (existing_event['end_time'] - existing_event['start_time']).total_seconds() / 60
+    
+    existing_events = [
+        {'start_time' : datetime.datetime.strptime('2023-10-05T10:00:00-07:00', '%Y-%m-%dT%H:%M:%S%z'), 
+         'end_time' : datetime.datetime.strptime('2023-10-05T11:00:00-07:00', '%Y-%m-%dT%H:%M:%S%z'),
+         'duration' : 60.0}
+         ]
+    
+    schedule = []
+    for new_event in new_events_list:
+        next_end_time = next_start_time + datetime.timedelta(minutes = new_event.duration)  
 
-    # --- GPT code: 
+        is_overlap = False
+        for existing_event in existing_events:
+            while next_start_time < existing_event['end_time'] and next_end_time > existing_event['start_time']:
+                print('overlap found: ', next_start_time)
+                next_start_time += datetime.timedelta(minutes = existing_event['duration'])
+                next_end_time += datetime.timedelta(minutes = existing_event['duration'])
+                print('updated start time: ', next_start_time)
 
-    # Check for overlapping events
-    is_overlap = False
-    for event in existing_events:
-        if new_event.start_time < event.end_time and new_event.end_time > event.start_time:
-            is_overlap = True
-            break
+        #TODO: add start_time and end_time attributes
+        #new_event.start_time, new_event.end_time = next_start_time, next_end_time
+        print('added event at this time: ', next_start_time)
+        schedule.append(new_event)
+        next_start_time += datetime.timedelta(minutes = new_event.duration)
 
-    if is_overlap:
-        print("Event overlaps with an existing event. Cannot add.")
-    else:
-        # Add the new event to the calendar
-        calendar.add_event(new_event)
-        print("Event added to the calendar.")
-
-    # -- END GPT code
+    return schedule 
 
 # def create_event():
 
@@ -363,10 +372,10 @@ if __name__ == "__main__":
     #     print(topic_info)
 
 
-    all_events_list = create_list_of_events(topic_info_grouped_by_type_dict)
+    new_events_list = create_list_of_events(topic_info_grouped_by_type_dict)
 
     #TODO: should be distributed by type AND topic, right now only by topic
-    sorted_topic_list = sorted(all_events_list, key = len, reverse=True)
+    sorted_topic_list = sorted(new_events_list, key = len, reverse=True)
 
     final_order = interleave(sorted_topic_list)
  

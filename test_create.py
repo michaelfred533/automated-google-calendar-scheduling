@@ -3,6 +3,7 @@ test the function of create_schedule.py
 """
 
 import unittest
+from unittest import mock
 import create_schedule
 import schedule
 
@@ -51,7 +52,25 @@ class test_create(unittest.TestCase):
 
         print(events)
         
+    ## ------------------------End of test block---------------------
 
+    def test_schedule_events(self):
+        # input:
+        existing_events = [{'start' : '2023-10-05T10:00:00-07:00', 'end' : '2023-10-05T11:00:00-07:00'}]
+        new_events = [create_schedule.Event('A', 60, 'practice'), create_schedule.Event('B', 60, 'practice')]
+
+        # output:
+        with mock.patch('create_schedule.get_todays_calendar', return_value = existing_events):
+            schedule = create_schedule.schedule_events(new_events, existing_events)
+        print(schedule)
+        # expected: 
+        expected = [
+                    {'name': 'A', 'start' : '2023-10-05T09:00:00-07:00', 'end' : '2023-10-05T10:00:00-07:00'}, 
+                    {'name' : 'B', 'start' : '2023-10-05T11:00:00-07:00', 'end' : '2023-10-05T12:00:00-07:00'}
+                    ]
+
+        # tests: 
+        #self.assertEqual(expected, schedule)
 
     ## ------------------------End of test block---------------------
 
