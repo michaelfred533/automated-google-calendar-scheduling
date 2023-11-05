@@ -56,17 +56,22 @@ class test_create(unittest.TestCase):
 
     def test_schedule_events(self):
         # input:
-        existing_events = [{'start' : '2023-10-05T10:00:00-07:00', 'end' : '2023-10-05T11:00:00-07:00'}]
+        existing_events = [{'start' : {'dateTime' : '2023-10-05T10:00:00-07:00'}, 'end' : {'dateTime' : '2023-10-05T11:00:00-07:00'}}]
         new_events = [create_schedule.Event('A', 60, 'practice'), create_schedule.Event('B', 60, 'practice')]
 
         # output:
         with mock.patch('create_schedule.get_todays_calendar', return_value = existing_events):
             schedule = create_schedule.schedule_events(new_events, existing_events)
-        print(schedule)
+        print('mock shedule: ', schedule)
         # expected: 
+        event1 = create_schedule.Event('A', 60, 'practice')
+        event2 = create_schedule.Event('B', 60, 'practice')
+        expected = [event1, event2]
+        for event in expected:
+            event['duration'] = event['end_time'] - event['start_time']
         expected = [
-                    {'name': 'A', 'start' : '2023-10-05T09:00:00-07:00', 'end' : '2023-10-05T10:00:00-07:00'}, 
-                    {'name' : 'B', 'start' : '2023-10-05T11:00:00-07:00', 'end' : '2023-10-05T12:00:00-07:00'}
+                    {'name': 'A', 'start_time' : '2023-10-05T09:00:00-07:00', 'end_time' : '2023-10-05T10:00:00-07:00'}, 
+                    {'name' : 'B', 'start_time' : '2023-10-05T11:00:00-07:00', 'end_time' : '2023-10-05T12:00:00-07:00'}
                     ]
 
         # tests: 

@@ -296,24 +296,25 @@ def get_todays_calendar():
 
     print(events)
 
-#TODO: LEAVING OFF HERE 
+#TODO: implement mock in test case
 def schedule_events(new_events_list, existing_events):
     
     #date = datetime.today().date()
     next_start_time = datetime.datetime.strptime('2023-10-05T09:00:00-07:00', '%Y-%m-%dT%H:%M:%S%z')
     end_of_day = datetime.datetime.strptime('2023-10-05T23:00:00-07:00', '%Y-%m-%dT%H:%M:%S%z')
 
-    # existing_events = get_todays_calendar()
-    # for event in existing_events:
-    #     event['start_time'] = event['start']['dateTime']
-    #     event['end_time'] = event['end']['dateTime']
-    #     event['duration'] = (existing_event['end_time'] - existing_event['start_time']).total_seconds() / 60
+    existing_events = get_todays_calendar()
+    for event in existing_events:
+        event['start_time'] = datetime.datetime.strptime(event['start']['dateTime'], '%Y-%m-%dT%H:%M:%S%z')
+        event['end_time'] = datetime.datetime.strptime(event['end']['dateTime'], '%Y-%m-%dT%H:%M:%S%z')
+        print(event['start_time'], event['end_time'])
+        event['duration'] = (event['end_time'] - event['start_time']).total_seconds() / 60
     
-    existing_events = [
-        {'start_time' : datetime.datetime.strptime('2023-10-05T10:00:00-07:00', '%Y-%m-%dT%H:%M:%S%z'), 
-         'end_time' : datetime.datetime.strptime('2023-10-05T11:00:00-07:00', '%Y-%m-%dT%H:%M:%S%z'),
-         'duration' : 60.0}
-         ]
+    # existing_events = [
+    #     {'start_time' : datetime.datetime.strptime('2023-10-05T10:00:00-07:00', '%Y-%m-%dT%H:%M:%S%z'), 
+    #      'end_time' : datetime.datetime.strptime('2023-10-05T11:00:00-07:00', '%Y-%m-%dT%H:%M:%S%z'),
+    #      'duration' : 60.0}
+    #      ]
     
     schedule = []
     for new_event in new_events_list:
