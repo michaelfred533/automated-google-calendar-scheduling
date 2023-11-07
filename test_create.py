@@ -54,9 +54,40 @@ class test_create(unittest.TestCase):
         
     ## ------------------------End of test block---------------------
 
-    def test_schedule_events(self):
+    def test_schedule_events1(self):
         # input:
-        existing_events = [{'start' : {'dateTime' : '2023-10-05T10:00:00-07:00'}, 'end' : {'dateTime' : '2023-10-05T11:00:00-07:00'}}]
+        existing_events = [
+            {'start' : {'dateTime' : '2023-10-05T10:00:00-07:00'}, 'end' : {'dateTime' : '2023-10-05T11:30:00-07:00'}},
+            {'start' : {'dateTime' : '2023-10-05T11:30:00-07:00'}, 'end' : {'dateTime' : '2023-10-05T12:00:00-07:00'}},
+            ]
+        new_events = [create_schedule.Event('A', 60, 'practice'), create_schedule.Event('B', 60, 'practice')]
+
+        # output:
+        with mock.patch('create_schedule.get_todays_calendar', return_value = existing_events):
+            result = create_schedule.schedule_events(new_events, existing_events)
+        print('mock shedule: ', schedule)
+        # expected: 
+        event1 = create_schedule.Event('A', 60, 'practice')
+        event2 = create_schedule.Event('B', 60, 'practice')
+        event1.start_time, event1.end_time = '2023-10-05T09:00:00-07:00', '2023-10-05T10:00:00-07:00' 
+        event2.start_time, event2.end_time = '2023-10-05T12:00:00-07:00', '2023-10-05T13:00:00-07:00'
+
+        expected = [event1, event2]
+
+        # tests: 
+        #self.assertEqual(expected, schedule)
+        for i,j in zip(expected, result):
+            print('dirs: ')
+            print(dir(i))
+            print(dir(j))
+            self.assertEqual(dir(i), dir(j))
+
+    def test_schedule_events2(self):
+        # input:
+        existing_events = [
+            {'start' : {'dateTime' : '2023-10-05T09:00:00-07:00'}, 'end' : {'dateTime' : '2023-10-05T10:30:00-07:00'}},
+            {'start' : {'dateTime' : '2023-10-05T11:30:00-07:00'}, 'end' : {'dateTime' : '2023-10-05T12:00:00-07:00'}},
+            ]
         new_events = [create_schedule.Event('A', 60, 'practice'), create_schedule.Event('B', 60, 'practice')]
 
         # output:
@@ -66,16 +97,16 @@ class test_create(unittest.TestCase):
         # expected: 
         event1 = create_schedule.Event('A', 60, 'practice')
         event2 = create_schedule.Event('B', 60, 'practice')
+        event1.start_time, event1.end_time = '2023-10-05T09:00:00-07:00', '2023-10-05T10:00:00-07:00' 
+        event2.start_time, event2.end_time = '2023-10-05T10:00:00-07:00', '2023-10-05T11:00:00-07:00'
+
         expected = [event1, event2]
-        for event in expected:
-            event['duration'] = event['end_time'] - event['start_time']
-        expected = [
-                    {'name': 'A', 'start_time' : '2023-10-05T09:00:00-07:00', 'end_time' : '2023-10-05T10:00:00-07:00'}, 
-                    {'name' : 'B', 'start_time' : '2023-10-05T11:00:00-07:00', 'end_time' : '2023-10-05T12:00:00-07:00'}
-                    ]
+        
 
         # tests: 
         #self.assertEqual(expected, schedule)
+
+
 
     ## ------------------------End of test block---------------------
 

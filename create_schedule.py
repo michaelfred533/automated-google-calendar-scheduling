@@ -30,6 +30,8 @@ class Event:
         self.topic = topic
         self.duration = duration
         self.study_type = study_type
+        self.start_time = self.end_time = "pending"
+
 
     def __str__(self):
         return f"Topic: {self.topic}, Duration: {self.duration}, Study Type: {self.study_type}"
@@ -307,7 +309,6 @@ def schedule_events(new_events_list, existing_events):
     for event in existing_events:
         event['start_time'] = datetime.datetime.strptime(event['start']['dateTime'], '%Y-%m-%dT%H:%M:%S%z')
         event['end_time'] = datetime.datetime.strptime(event['end']['dateTime'], '%Y-%m-%dT%H:%M:%S%z')
-        print(event['start_time'], event['end_time'])
         event['duration'] = (event['end_time'] - event['start_time']).total_seconds() / 60
     
     # existing_events = [
@@ -320,17 +321,17 @@ def schedule_events(new_events_list, existing_events):
     for new_event in new_events_list:
         next_end_time = next_start_time + datetime.timedelta(minutes = new_event.duration)  
 
-        is_overlap = False
         for existing_event in existing_events:
-            while next_start_time < existing_event['end_time'] and next_end_time > existing_event['start_time']:
-                print('overlap found: ', next_start_time)
-                next_start_time += datetime.timedelta(minutes = existing_event['duration'])
-                next_end_time += datetime.timedelta(minutes = existing_event['duration'])
+            if next_start_time < existing_event['end_time'] and next_end_time > existing_event['start_time']:
+                print('overlap found! proposed start: ', next_start_time, 'existing event start: ', existing_event['start_time'])
+                next_start_time = existing_event['end_time']
+                next_end_time = next_start_time + datetime.timedelta(minutes = new_event.duration)
                 print('updated start time: ', next_start_time)
 
         #TODO: add start_time and end_time attributes
         #new_event.start_time, new_event.end_time = next_start_time, next_end_time
         print('added event at this time: ', next_start_time)
+        new_event.start_time, new_event.end_time = next_start_time, next_end_time
         schedule.append(new_event)
         next_start_time += datetime.timedelta(minutes = new_event.duration)
 
