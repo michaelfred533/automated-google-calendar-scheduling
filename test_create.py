@@ -1,6 +1,8 @@
 """
 test the function of create_schedule.py
 """
+import datetime
+from datetime import time
 
 import unittest
 from unittest import mock
@@ -9,6 +11,7 @@ import schedule
 
 SCOPES = ["https://www.googleapis.com/auth/calendar.readonly"]
 
+#TODO: separate into separate classes
 class test_create(unittest.TestCase):
 
     # def test_mix_lists(self):
@@ -42,45 +45,37 @@ class test_create(unittest.TestCase):
    
     ## ------------------------End of test block---------------------
 
-    def test_get_todays_calendar(self):
-
-        start_date = "2023-10-04"
-        end_date = "2023-10-06" 
-
-        service = schedule.access_calendar(SCOPES)
-        events = schedule.get_events(service, start_date, end_date)
-
-        print(events)
-        
     ## ------------------------End of test block---------------------
 
     def test_schedule_events1(self):
         # input:
         existing_events = [
             {'start' : {'dateTime' : '2023-10-05T10:00:00-07:00'}, 'end' : {'dateTime' : '2023-10-05T11:30:00-07:00'}},
-            {'start' : {'dateTime' : '2023-10-05T11:30:00-07:00'}, 'end' : {'dateTime' : '2023-10-05T12:00:00-07:00'}},
+            {'start' : {'dateTime' : '2023-10-05T11:30:00-07:00'}, 'end' : {'dateTime' : '2023-10-05T12:30:00-07:00'}},
             ]
         new_events = [create_schedule.Event('A', 60, 'practice'), create_schedule.Event('B', 60, 'practice')]
 
         # output:
         with mock.patch('create_schedule.get_todays_calendar', return_value = existing_events):
-            result = create_schedule.schedule_events(new_events, existing_events)
+            result = create_schedule.schedule_events(new_events)
         print('mock shedule: ', schedule)
         # expected: 
         event1 = create_schedule.Event('A', 60, 'practice')
         event2 = create_schedule.Event('B', 60, 'practice')
-        event1.start_time, event1.end_time = '2023-10-05T09:00:00-07:00', '2023-10-05T10:00:00-07:00' 
-        event2.start_time, event2.end_time = '2023-10-05T12:00:00-07:00', '2023-10-05T13:00:00-07:00'
+        event1.start_time, event1.end_time = datetime.datetime.strptime('2023-10-05T09:00:00-07:00', '%Y-%m-%dT%H:%M:%S%z'), datetime.datetime.strptime('2023-10-05T10:00:00-07:00', '%Y-%m-%dT%H:%M:%S%z') 
+        event2.start_time, event2.end_time = datetime.datetime.strptime('2023-10-05T12:30:00-07:00', '%Y-%m-%dT%H:%M:%S%z'), datetime.datetime.strptime('2023-10-05T13:30:00-07:00', '%Y-%m-%dT%H:%M:%S%z')
 
         expected = [event1, event2]
 
         # tests: 
-        #self.assertEqual(expected, schedule)
-        for i,j in zip(expected, result):
-            print('dirs: ')
-            print(dir(i))
-            print(dir(j))
-            self.assertEqual(dir(i), dir(j))
+        # check that each attribute matches for each event in the schedule
+        for event_expected, event_result in zip(expected, result):
+            attributes_expected = [attr for attr in dir(event_expected) if not callable(getattr(event_expected, attr)) and not attr.startswith("__")]
+            attributes_result = [attr for attr in dir(event_result) if not callable(getattr(event_result, attr))and not attr.startswith("__")]
+            for attr_name in attributes_expected:
+                attr_expected = getattr(event_expected, attr_name)
+                attr_result = getattr(event_result, attr_name)
+                self.assertEqual(attr_expected, attr_result)
 
     def test_schedule_events2(self):
         # input:
@@ -92,23 +87,72 @@ class test_create(unittest.TestCase):
 
         # output:
         with mock.patch('create_schedule.get_todays_calendar', return_value = existing_events):
-            schedule = create_schedule.schedule_events(new_events, existing_events)
+            result = create_schedule.schedule_events(new_events)
         print('mock shedule: ', schedule)
+
         # expected: 
         event1 = create_schedule.Event('A', 60, 'practice')
         event2 = create_schedule.Event('B', 60, 'practice')
-        event1.start_time, event1.end_time = '2023-10-05T09:00:00-07:00', '2023-10-05T10:00:00-07:00' 
-        event2.start_time, event2.end_time = '2023-10-05T10:00:00-07:00', '2023-10-05T11:00:00-07:00'
+        event1.start_time, event1.end_time = datetime.datetime.strptime('2023-10-05T10:30:00-07:00', '%Y-%m-%dT%H:%M:%S%z'), datetime.datetime.strptime('2023-10-05T11:30:00-07:00', '%Y-%m-%dT%H:%M:%S%z') 
+        event2.start_time, event2.end_time = datetime.datetime.strptime('2023-10-05T12:00:00-07:00', '%Y-%m-%dT%H:%M:%S%z'), datetime.datetime.strptime('2023-10-05T13:00:00-07:00', '%Y-%m-%dT%H:%M:%S%z')
+
+        expected = [event1, event2]
+        
+        # tests: 
+        # check that each attribute matches for each event in the schedule
+        for event_expected, event_result in zip(expected, result):
+            attributes_expected = [attr for attr in dir(event_expected) if not callable(getattr(event_expected, attr)) and not attr.startswith("__")]
+            attributes_result = [attr for attr in dir(event_result) if not callable(getattr(event_result, attr))and not attr.startswith("__")]
+            for attr_name in attributes_expected:
+                attr_expected = getattr(event_expected, attr_name)
+                attr_result = getattr(event_result, attr_name)
+                print(attr_expected)
+                print(attr_result)
+                self.assertEqual(attr_expected, attr_result)
+
+    def test_get_todays_calendar(self):
+
+        start_date = "2023-10-04"
+        end_date = "2023-10-06" 
+
+        service = schedule.access_calendar(SCOPES)
+        events = schedule.get_events(service, start_date, end_date)
+
+        #print(events)
+        #events[0]['start']['dateTime']
+        print(type(events[0]['start']['dateTime']))
+    
+    #TODO: finish this  
+    def test_schedule_events3(self):
+        # input:
+        new_events = [create_schedule.Event('A', 60, 'practice'), create_schedule.Event('B', 60, 'practice')]
+
+        # output:
+        result = create_schedule.schedule_events(new_events)
+
+        # expected: 
+        event1 = create_schedule.Event('A', 60, 'practice')
+        event2 = create_schedule.Event('B', 60, 'practice')
+        #TODO: update times
+        event1.start_time, event1.end_time = datetime.datetime.strptime('2023-10-05T10:30:00-07:00', '%Y-%m-%dT%H:%M:%S%z'), datetime.datetime.strptime('2023-10-05T11:30:00-07:00', '%Y-%m-%dT%H:%M:%S%z') 
+        event2.start_time, event2.end_time = datetime.datetime.strptime('2023-10-05T12:00:00-07:00', '%Y-%m-%dT%H:%M:%S%z'), datetime.datetime.strptime('2023-10-05T13:00:00-07:00', '%Y-%m-%dT%H:%M:%S%z')
 
         expected = [event1, event2]
         
 
         # tests: 
-        #self.assertEqual(expected, schedule)
+        # check that each attribute matches for each event in the schedule
+        for event_expected, event_result in zip(expected, result):
+            attributes_expected = [attr for attr in dir(event_expected) if not callable(getattr(event_expected, attr)) and not attr.startswith("__")]
+            attributes_result = [attr for attr in dir(event_result) if not callable(getattr(event_result, attr))and not attr.startswith("__")]
+            for attr_name in attributes_expected:
+                attr_expected = getattr(event_expected, attr_name)
+                attr_result = getattr(event_result, attr_name)
+                print(attr_expected)
+                print(attr_result)
+                self.assertEqual(attr_expected, attr_result)
 
-
-
-    ## ------------------------End of test block---------------------
+    #----------------------End of test block---------------------
 
 
     def test_interleave1(self):

@@ -277,6 +277,7 @@ def interleave(events):
 
     return final_order
 
+#TODO: make this method name more descriptive 
 def create_list_of_events(topic_info_grouped_by_type_dict):
     
     new_events_list = []
@@ -286,6 +287,7 @@ def create_list_of_events(topic_info_grouped_by_type_dict):
 
     return new_events_list
 
+
 def get_todays_calendar():
     
     start_date = str(datetime.date.today())
@@ -294,12 +296,10 @@ def get_todays_calendar():
     service = schedule.access_calendar(SCOPES)
     events = schedule.get_events(service, start_date, end_date)
 
-    
-
-    print(events)
+    return events
 
 #TODO: implement mock in test case
-def schedule_events(new_events_list, existing_events):
+def schedule_events(new_events_list):
     
     #date = datetime.today().date()
     next_start_time = datetime.datetime.strptime('2023-10-05T09:00:00-07:00', '%Y-%m-%dT%H:%M:%S%z')
@@ -311,11 +311,6 @@ def schedule_events(new_events_list, existing_events):
         event['end_time'] = datetime.datetime.strptime(event['end']['dateTime'], '%Y-%m-%dT%H:%M:%S%z')
         event['duration'] = (event['end_time'] - event['start_time']).total_seconds() / 60
     
-    # existing_events = [
-    #     {'start_time' : datetime.datetime.strptime('2023-10-05T10:00:00-07:00', '%Y-%m-%dT%H:%M:%S%z'), 
-    #      'end_time' : datetime.datetime.strptime('2023-10-05T11:00:00-07:00', '%Y-%m-%dT%H:%M:%S%z'),
-    #      'duration' : 60.0}
-    #      ]
     
     schedule = []
     for new_event in new_events_list:
@@ -329,7 +324,6 @@ def schedule_events(new_events_list, existing_events):
                 print('updated start time: ', next_start_time)
 
         #TODO: add start_time and end_time attributes
-        #new_event.start_time, new_event.end_time = next_start_time, next_end_time
         print('added event at this time: ', next_start_time)
         new_event.start_time, new_event.end_time = next_start_time, next_end_time
         schedule.append(new_event)
