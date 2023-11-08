@@ -291,26 +291,30 @@ def create_list_of_events(topic_info_grouped_by_type_dict):
 def get_todays_calendar():
     
     start_date = str(datetime.date.today())
-    end_date = str((datetime.date.today() + datetime.timedelta(days = 2)))
+    end_date = str((datetime.date.today() + datetime.timedelta(days = 1)))
 
     service = schedule.access_calendar(SCOPES)
     events = schedule.get_events(service, start_date, end_date)
 
     return events
 
-#TODO: implement mock in test case
+
 def schedule_events(new_events_list):
     
-    #date = datetime.today().date()
-    next_start_time = datetime.datetime.strptime('2023-10-05T09:00:00-07:00', '%Y-%m-%dT%H:%M:%S%z')
-    end_of_day = datetime.datetime.strptime('2023-10-05T23:00:00-07:00', '%Y-%m-%dT%H:%M:%S%z')
-
+    #TODO: update date for next_start_time and end_of_day
+    date = datetime.datetime.today().date()
+    
+    next_start_time = datetime.datetime.strptime(str(date) + 'T09:00:00-07:00', '%Y-%m-%dT%H:%M:%S%z')
+    end_of_day = datetime.datetime.strptime(str(date) + 'T23:00:00-07:00', '%Y-%m-%dT%H:%M:%S%z')
+    print(next_start_time)
+    print(end_of_day)
+  
     existing_events = get_todays_calendar()
     for event in existing_events:
         event['start_time'] = datetime.datetime.strptime(event['start']['dateTime'], '%Y-%m-%dT%H:%M:%S%z')
         event['end_time'] = datetime.datetime.strptime(event['end']['dateTime'], '%Y-%m-%dT%H:%M:%S%z')
         event['duration'] = (event['end_time'] - event['start_time']).total_seconds() / 60
-    
+        print(event['start_time'], event['end_time'])
     
     schedule = []
     for new_event in new_events_list:
