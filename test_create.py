@@ -47,6 +47,14 @@ class test_create(unittest.TestCase):
 
     ## ------------------------End of test block---------------------
 
+    #TODO: refactor code into helper functions 
+    def helper_create_sample_events(self):
+        date = str(datetime.date.today())
+        existing_events = [
+            {'start' : {'dateTime' : date + 'T10:00:00-07:00'}, 'end' : {'dateTime' : date + 'T11:30:00-07:00'}},
+            {'start' : {'dateTime' : date + 'T11:30:00-07:00'}, 'end' : {'dateTime' : date + 'T12:30:00-07:00'}},
+            ]
+
     def test_schedule_events1(self):
         # input:
 
@@ -127,6 +135,7 @@ class test_create(unittest.TestCase):
         print(type(events[0]['start']['dateTime']))
     
     #TODO: finish this  
+        #TODO: use function that adds an event to the calendar at X time on current date
     def test_schedule_events3(self):
         # input:
         new_events = [create_schedule.Event('A', 60, 'practice'), create_schedule.Event('B', 60, 'practice')]
@@ -138,7 +147,6 @@ class test_create(unittest.TestCase):
         event1 = create_schedule.Event('A', 60, 'practice')
         event2 = create_schedule.Event('B', 60, 'practice')
         
-        #TODO: use function that adds an event to the calendar at X time on current date
         date = str(datetime.date.today())
         event1.start_time, event1.end_time = datetime.datetime.strptime(date + '10:00:00-07:00', '%Y-%m-%dT%H:%M:%S%z'), datetime.datetime.strptime(date + '11:00:00-07:00', '%Y-%m-%dT%H:%M:%S%z') 
         event2.start_time, event2.end_time = datetime.datetime.strptime(date + '12:00:00-07:00', '%Y-%m-%dT%H:%M:%S%z'), datetime.datetime.strptime(date + '13:00:00-07:00', '%Y-%m-%dT%H:%M:%S%z')
@@ -158,6 +166,25 @@ class test_create(unittest.TestCase):
         #         print(attr_result)
         #         self.assertEqual(attr_expected, attr_result)
 
+    #----------------------End of test block---------------------
+    
+    def test_create_google_calendar_event(self):
+        
+        #input:         
+        input_event = create_schedule.Event('A', 60, 'practice')
+
+        date = str(datetime.date.today())
+        input_event.start_time = date + 'T09:00:00'
+        input_event.end_time = date + 'T10:00:00'
+
+        #result:
+        result = create_schedule.create_google_calendar_event(input_event)
+        
+        #expected:
+        
+        #tests: 
+        #TODO: use other function to get calendar to confirm that the event is created
+        
     #----------------------End of test block---------------------
 
 

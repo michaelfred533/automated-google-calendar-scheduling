@@ -21,7 +21,8 @@ from google.oauth2 import service_account
 import schedule
 
 
-SCOPES = ["https://www.googleapis.com/auth/calendar.readonly"]
+#SCOPES = ["https://www.googleapis.com/auth/calendar.readonly"]
+SCOPES = ["https://www.googleapis.com/auth/calendar"]
 
 # ----------------------------------------------------------------------------------------------------------------
  
@@ -298,10 +299,9 @@ def get_todays_calendar():
 
     return events
 
-
+#TODO: more descriptive function name
 def schedule_events(new_events_list):
     
-    #TODO: update date for next_start_time and end_of_day
     date = datetime.datetime.today().date()
     
     next_start_time = datetime.datetime.strptime(str(date) + 'T09:00:00-07:00', '%Y-%m-%dT%H:%M:%S%z')
@@ -335,22 +335,26 @@ def schedule_events(new_events_list):
 
     return schedule 
 
-# def create_event():
+def create_google_calendar_event(event):
 
-#     # Define the event details
-#     event = {
-#         'summary': 'Sample Event',
-#         'location': 'Sample Location',
-#         'description': 'This is a sample event description.',
-#         'start': {'dateTime': '2023-10-05T10:00:00', 'timeZone': "America/Los_Angeles"},
-#         'end': {'dateTime': '2023-10-05T11:00:00', 'timeZone': "America/Los_Angeles"},
-#     }
-#     # Insert the event into the primary calendar
-#     event = service.events().insert(calendarId='primary', body=event).execute()
-#     print('Event created: %s' % (event.get('htmlLink')))
+    # Define the event details
+    event = {
+        'summary': event.topic + ' ' + event.study_type,
+        'description': 'NA',
+        'start': {'dateTime': event.start_time, 'timeZone': "America/Los_Angeles"},
+        'end': {'dateTime': event.end_time, 'timeZone': "America/Los_Angeles"},
+        'reminders': {
+            'useDefault': False,
+            'overrides': [],
+        },
+    }
+    # Insert the event into the primary calendar
+    service = schedule.access_calendar(SCOPES)
+    event = service.events().insert(calendarId='primary', body=event).execute()
+    print('Event created: %s' % (event.get('htmlLink')))
 
 
-
+#TODO: maybe remove -7:00 and use lA time zone instead since it fucks with daylight savings time
 #TODO: make REALLY small funcitons - even 1 line if it improved readability
 
 if __name__ == "__main__":
