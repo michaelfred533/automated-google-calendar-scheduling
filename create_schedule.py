@@ -9,6 +9,7 @@ import os.path
 import pandas as pd
 import logging
 import copy
+import pytz
 
 from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -18,7 +19,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 
 from google.oauth2 import service_account
 
-import schedule
+import get_calendar_data
 
 
 #SCOPES = ["https://www.googleapis.com/auth/calendar.readonly"]
@@ -294,27 +295,28 @@ def get_todays_calendar():
     start_date = str(datetime.date.today())
     end_date = str((datetime.date.today() + datetime.timedelta(days = 1)))
 
-    service = schedule.access_calendar(SCOPES)
-    events = schedule.get_events(service, start_date, end_date)
+    service = get_calendar_data.access_calendar(SCOPES)
+    events = get_calendar_data.get_events(service, start_date, end_date)
 
     return events
 
 #TODO: more descriptive function name
-def schedule_events(new_events_list):
+def schedule_events_in_google_calendar(new_events_list):
     
     date = datetime.datetime.today().date()
     
-    next_start_time = datetime.datetime.strptime(str(date) + 'T09:00:00-07:00', '%Y-%m-%dT%H:%M:%S%z')
-    end_of_day = datetime.datetime.strptime(str(date) + 'T23:00:00-07:00', '%Y-%m-%dT%H:%M:%S%z')
-    print(next_start_time)
-    print(end_of_day)
-  
+    next_start_time = pytz.timezone('America/Los_Angeles').localize(datetime.datetime.strptime(str(date) + 'T09:00:00', '%Y-%m-%dT%H:%M:%S'))
+    end_of_day = pytz.timezone('America/Los_Angeles').localize(datetime.datetime.strptime(str(date) + 'T23:00:00', '%Y-%m-%dT%H:%M:%S'))
+    
+    print('beginning of day: ', next_start_time)
+    print('end of day: ', end_of_day)
+
     existing_events = get_todays_calendar()
     for event in existing_events:
         event['start_time'] = datetime.datetime.strptime(event['start']['dateTime'], '%Y-%m-%dT%H:%M:%S%z')
         event['end_time'] = datetime.datetime.strptime(event['end']['dateTime'], '%Y-%m-%dT%H:%M:%S%z')
         event['duration'] = (event['end_time'] - event['start_time']).total_seconds() / 60
-        print(event['start_time'], event['end_time'])
+        print('existing event start and end: ', event['start_time'], event['end_time'])
     
     schedule = []
     for new_event in new_events_list:
@@ -327,7 +329,6 @@ def schedule_events(new_events_list):
                 next_end_time = next_start_time + datetime.timedelta(minutes = new_event.duration)
                 print('updated start time: ', next_start_time)
 
-        #TODO: add start_time and end_time attributes
         print('added event at this time: ', next_start_time)
         new_event.start_time, new_event.end_time = next_start_time, next_end_time
         schedule.append(new_event)
@@ -337,7 +338,10 @@ def schedule_events(new_events_list):
 
 def create_google_calendar_event(event):
 
-    # Define the event details
+    def add_event_to_google_calendar(event):
+        service = get_calendar_data.access_calendar(SCOPES)
+        event = service.events().insert(calendarId='primary', body=event).execute()
+
     event = {
         'summary': event.topic + ' ' + event.study_type,
         'description': 'NA',
@@ -348,10 +352,8 @@ def create_google_calendar_event(event):
             'overrides': [],
         },
     }
-    # Insert the event into the primary calendar
-    service = schedule.access_calendar(SCOPES)
-    event = service.events().insert(calendarId='primary', body=event).execute()
-    print('Event created: %s' % (event.get('htmlLink')))
+
+    add_event_to_google_calendar(event)
 
 
 #TODO: maybe remove -7:00 and use lA time zone instead since it fucks with daylight savings time

@@ -102,11 +102,10 @@ def get_events(service, start_date, end_date):
 
     start_date = (
         datetime.datetime.strptime(str(start_date), "%Y-%m-%d").isoformat() + "Z"
-    )  # 'Z' indicates UTC time
+    )
     end_date = (
         datetime.datetime.strptime(str(end_date), "%Y-%m-%d").isoformat() + "Z"
-    )  # 'Z' indicates UTC time
-    # datetime.datetime.utcnow()
+    )
 
     # 3) Gather events from the Google Calendar API -------------------------------
 
@@ -126,7 +125,7 @@ def get_events(service, start_date, end_date):
     events = events_result.get("items", [])
 
     if not events:
-        raise ValueError("No events found")
+        print("Caution: No events found!")
     return events
 
 

@@ -7,7 +7,7 @@ from datetime import time
 import unittest
 from unittest import mock
 import create_schedule
-import schedule
+import get_calendar_data
 
 SCOPES = ["https://www.googleapis.com/auth/calendar.readonly"]
 
@@ -55,7 +55,20 @@ class test_create(unittest.TestCase):
             {'start' : {'dateTime' : date + 'T11:30:00-07:00'}, 'end' : {'dateTime' : date + 'T12:30:00-07:00'}},
             ]
 
-    def test_schedule_events1(self):
+    def test_get_todays_calendar(self):
+
+        start_date = "2023-10-04"
+        end_date = "2023-10-06" 
+
+        service = get_calendar_data.access_calendar(SCOPES)
+        events = get_calendar_data.get_events(service, start_date, end_date)
+
+        #print(events)
+        #events[0]['start']['dateTime']
+        print(type(events[0]['start']['dateTime']))
+
+
+    def test_schedule_events_in_google_calendar1(self):
         # input:
 
         date = str(datetime.date.today())
@@ -67,7 +80,7 @@ class test_create(unittest.TestCase):
 
         # output:
         with mock.patch('create_schedule.get_todays_calendar', return_value = existing_events):
-            result = create_schedule.schedule_events(new_events)
+            result = create_schedule.schedule_events_in_google_calendar(new_events)
         print('mock shedule: ', schedule)
         # expected: 
         event1 = create_schedule.Event('A', 60, 'practice')
@@ -87,7 +100,7 @@ class test_create(unittest.TestCase):
                 attr_result = getattr(event_result, attr_name)
                 self.assertEqual(attr_expected, attr_result)
 
-    def test_schedule_events2(self):
+    def test_schedule_events_in_google_calendar2(self):
         # input:
 
         date = str(datetime.date.today())
@@ -99,7 +112,7 @@ class test_create(unittest.TestCase):
 
         # output:
         with mock.patch('create_schedule.get_todays_calendar', return_value = existing_events):
-            result = create_schedule.schedule_events(new_events)
+            result = create_schedule.schedule_events_in_google_calendar(new_events)
         print('mock shedule: ', schedule)
 
         # expected: 
@@ -122,34 +135,27 @@ class test_create(unittest.TestCase):
                 print(attr_result)
                 self.assertEqual(attr_expected, attr_result)
 
-    def test_get_todays_calendar(self):
-
-        start_date = "2023-10-04"
-        end_date = "2023-10-06" 
-
-        service = schedule.access_calendar(SCOPES)
-        events = schedule.get_events(service, start_date, end_date)
-
-        #print(events)
-        #events[0]['start']['dateTime']
-        print(type(events[0]['start']['dateTime']))
-    
     #TODO: finish this  
         #TODO: use function that adds an event to the calendar at X time on current date
-    def test_schedule_events3(self):
+    def test_schedule_events_in_google_calendar3(self):
         # input:
         new_events = [create_schedule.Event('A', 60, 'practice'), create_schedule.Event('B', 60, 'practice')]
 
+        # add test events to google calendar:
+        create_schedule.create_google_calendar_event()
+
         # output:
-        result = create_schedule.schedule_events(new_events)
+        result = create_schedule.schedule_events_in_google_calendar(new_events)
 
         # expected: 
         event1 = create_schedule.Event('A', 60, 'practice')
         event2 = create_schedule.Event('B', 60, 'practice')
         
         date = str(datetime.date.today())
-        event1.start_time, event1.end_time = datetime.datetime.strptime(date + '10:00:00-07:00', '%Y-%m-%dT%H:%M:%S%z'), datetime.datetime.strptime(date + '11:00:00-07:00', '%Y-%m-%dT%H:%M:%S%z') 
-        event2.start_time, event2.end_time = datetime.datetime.strptime(date + '12:00:00-07:00', '%Y-%m-%dT%H:%M:%S%z'), datetime.datetime.strptime(date + '13:00:00-07:00', '%Y-%m-%dT%H:%M:%S%z')
+        event1.start_time, event1.end_time = datetime.datetime.strptime(date + 'T10:00:00', '%Y-%m-%dT%H:%M:%S'), datetime.datetime.strptime(date + 'T11:00:00', '%Y-%m-%dT%H:%M:%S') 
+        event2.start_time, event2.end_time = datetime.datetime.strptime(date + 'T12:00:00', '%Y-%m-%dT%H:%M:%S'), datetime.datetime.strptime(date + 'T13:00:00', '%Y-%m-%dT%H:%M:%S')
+        print('start and end event1: ', event1.start_time, event1.end_time)
+        print('start and end event2: ', event2.start_time, event2.end_time)
 
         expected = [event1, event2]
         
@@ -177,14 +183,16 @@ class test_create(unittest.TestCase):
         input_event.start_time = date + 'T09:00:00'
         input_event.end_time = date + 'T10:00:00'
 
-        #result:
-        result = create_schedule.create_google_calendar_event(input_event)
+        create_schedule.create_google_calendar_event(input_event)
         
-        #expected:
+        # Confirm that the event was created
+        events_from_calendar = create_schedule.get_todays_calendar()
         
         #tests: 
-        #TODO: use other function to get calendar to confirm that the event is created
-        
+        self.assertTrue(events_from_calendar != None)
+        self.assertTrue(events_from_calendar != [])
+        self.assertTrue(events_from_calendar[0]['start']['dateTime'][:-6] == input_event.start_time)
+
     #----------------------End of test block---------------------
 
 
