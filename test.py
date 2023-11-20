@@ -1,11 +1,19 @@
-import datetime
-from datetime import time
 
-date = datetime.datetime.today().date()
-time = datetime.datetime.today().time()
+order = ['a', 'b', 'x']
+type_order = [1, 1, 2]
 
-full_str = str(date) + 'T09:00:00-07:00'
-full_time = datetime.datetime.strptime(full_str, '%Y-%m-%dT%H:%M:%S%z')
+indexes_topic = {
+    'a' : 0, 
+    'b' : 1, 
+    'x' : 2
+    }
 
-print(full_str)
-print(full_time)
+indexes_type = {
+    1: [0,1], 
+    2: [2]
+    }
+
+for key in indexes_type.keys():
+    print(key)
+    print(indexes_type[key])
+    if 

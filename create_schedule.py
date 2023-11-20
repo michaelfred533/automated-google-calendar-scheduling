@@ -26,14 +26,23 @@ import get_calendar_data
 SCOPES = ["https://www.googleapis.com/auth/calendar"]
 
 # ----------------------------------------------------------------------------------------------------------------
- 
+
+
+def helper_create_timezone_datetime_object(time_ISO_string):
+    date = datetime.datetime.today().date()
+    datetime_string = str(date) + time_ISO_string
+    naive_datetime_object = datetime.datetime.strptime(datetime_string, '%Y-%m-%dT%H:%M:%S')
+    timezone_datetime_object = pytz.timezone('America/Los_Angeles').localize(naive_datetime_object)
+
+    return timezone_datetime_object
+
+#TODO: add @staticmethod decorator to helper functions 
 class Event:
     def __init__(self, topic, duration, study_type):
         self.topic = topic
         self.duration = duration
         self.study_type = study_type
         self.start_time = self.end_time = "pending"
-
 
     def __str__(self):
         return f"Topic: {self.topic}, Duration: {self.duration}, Study Type: {self.study_type}"
@@ -48,8 +57,6 @@ class MemoryBlockEvent(Event):
     def __str__(self):
         return f"MemoryBlockEvent: \n\tTopic: {self.topic}, Duration: {self.duration} \n\tStudy Event: ({self.study_event}) \n\tRecall Event: ({self.recall_event})"
         
-
-#TODO: create separate function for converting study_type_list?
 def get_user_input():
     """
     get user input for activities and what type of activities they are.
@@ -71,7 +78,6 @@ def get_user_input():
             
             total_time = total_time * 60
             return total_time
-
         def get_topics(self):
             while True:    
                 topics = input("Please enter the activities you wish to schedule, seperated by a comma and space. eg. A, B, C: ")
@@ -279,8 +285,7 @@ def interleave(events):
 
     return final_order
 
-#TODO: make this method name more descriptive 
-def create_list_of_events(topic_info_grouped_by_type_dict):
+def create_list_of_all_events_to_schedule(topic_info_grouped_by_type_dict):
     
     new_events_list = []
     for study_type_list in topic_info_grouped_by_type_dict.values():
@@ -290,6 +295,7 @@ def create_list_of_events(topic_info_grouped_by_type_dict):
     return new_events_list
 
 
+
 def get_todays_calendar():
     
     start_date = str(datetime.date.today())
@@ -297,44 +303,9 @@ def get_todays_calendar():
 
     service = get_calendar_data.access_calendar(SCOPES)
     events = get_calendar_data.get_events(service, start_date, end_date)
+    print('from todays calendar: ', events)
 
     return events
-
-#TODO: more descriptive function name
-def schedule_events_in_google_calendar(new_events_list):
-    
-    date = datetime.datetime.today().date()
-    
-    next_start_time = pytz.timezone('America/Los_Angeles').localize(datetime.datetime.strptime(str(date) + 'T09:00:00', '%Y-%m-%dT%H:%M:%S'))
-    end_of_day = pytz.timezone('America/Los_Angeles').localize(datetime.datetime.strptime(str(date) + 'T23:00:00', '%Y-%m-%dT%H:%M:%S'))
-    
-    print('beginning of day: ', next_start_time)
-    print('end of day: ', end_of_day)
-
-    existing_events = get_todays_calendar()
-    for event in existing_events:
-        event['start_time'] = datetime.datetime.strptime(event['start']['dateTime'], '%Y-%m-%dT%H:%M:%S%z')
-        event['end_time'] = datetime.datetime.strptime(event['end']['dateTime'], '%Y-%m-%dT%H:%M:%S%z')
-        event['duration'] = (event['end_time'] - event['start_time']).total_seconds() / 60
-        print('existing event start and end: ', event['start_time'], event['end_time'])
-    
-    schedule = []
-    for new_event in new_events_list:
-        next_end_time = next_start_time + datetime.timedelta(minutes = new_event.duration)  
-
-        for existing_event in existing_events:
-            if next_start_time < existing_event['end_time'] and next_end_time > existing_event['start_time']:
-                print('overlap found! proposed start: ', next_start_time, 'existing event start: ', existing_event['start_time'])
-                next_start_time = existing_event['end_time']
-                next_end_time = next_start_time + datetime.timedelta(minutes = new_event.duration)
-                print('updated start time: ', next_start_time)
-
-        print('added event at this time: ', next_start_time)
-        new_event.start_time, new_event.end_time = next_start_time, next_end_time
-        schedule.append(new_event)
-        next_start_time += datetime.timedelta(minutes = new_event.duration)
-
-    return schedule 
 
 def create_google_calendar_event(event):
 
@@ -355,16 +326,71 @@ def create_google_calendar_event(event):
 
     add_event_to_google_calendar(event)
 
+#TODO: will need to convert event.start_time / event.end_time back to strings after checking for overlap using datetime obj
+def schedule_times_for_events(new_events_list):
+   
+    def add_start_end_duration_to_existing_events(existing_events):
+        for event in existing_events:
+            event['start_time'] = pytz.timezone('America/Los_Angeles').localize(datetime.datetime.strptime(event['start']['dateTime'][:-6], '%Y-%m-%dT%H:%M:%S'))
+            event['end_time'] = pytz.timezone('America/Los_Angeles').localize(datetime.datetime.strptime(event['end']['dateTime'][:-6], '%Y-%m-%dT%H:%M:%S'))
+            event['duration'] = (event['end_time'] - event['start_time']).total_seconds() / 60
+    
+    def update_time_to_avoid_overlaps(existing_events, proposed_new_event_time):
+        def update_start_and_end_times(proposed_new_event_time):
+            proposed_new_event_time['start'] = existing_event['end_time']
+            proposed_new_event_time['end'] = proposed_new_event_time['start'] + datetime.timedelta(minutes = new_event.duration)
+            print('updated start time: ', proposed_new_event_time['start'])
+            return proposed_new_event_time
+        
+        for existing_event in existing_events:
+            if proposed_new_event_time['start'] < existing_event['end_time'] and proposed_new_event_time['end'] > existing_event['start_time']:
+                print('overlap found! proposed start: ', proposed_new_event_time['start'], 'existing event start: ', existing_event['start_time'])
+                proposed_new_event_time = update_start_and_end_times(proposed_new_event_time)
 
-#TODO: maybe remove -7:00 and use lA time zone instead since it fucks with daylight savings time
+        return proposed_new_event_time
+
+    
+    proposed_new_event_time = {
+        'start': helper_create_timezone_datetime_object('T09:00:00'),
+        'end': None
+    }
+    
+    existing_events = get_todays_calendar()
+
+    add_start_end_duration_to_existing_events(existing_events)
+
+
+    schedule = []
+    for new_event in new_events_list:
+        proposed_new_event_time['end'] = proposed_new_event_time['start'] + datetime.timedelta(minutes = new_event.duration)  
+
+        proposed_new_event_time = update_time_to_avoid_overlaps(existing_events, proposed_new_event_time)
+
+        print('added event at this time: ', proposed_new_event_time['start'])
+        def add_event_to_schedule(new_event, schedule, proposed_new_event_time):
+            new_event.start_time, new_event.end_time = proposed_new_event_time['start'], proposed_new_event_time['end']
+            schedule.append(new_event)
+            return schedule
+        
+        schedule = add_event_to_schedule(new_event, schedule, proposed_new_event_time)
+        
+        proposed_new_event_time['start'] = proposed_new_event_time['end']
+
+    return schedule 
+
+
 #TODO: make REALLY small funcitons - even 1 line if it improved readability
 
 if __name__ == "__main__":
     # user_input_info = get_user_input()
 
     # ADDEDADDEDADDEDADDEDADDED
-    user_input_info = {}
-    user_input_info['total_time'], user_input_info['topics'], user_input_info['proportions'], user_input_info['study_type_list'] = 180, ['A', 'B', 'X'], [.33, .33, .34], ['memory', 'memory', 'practice'] 
+    user_input_info = {
+        'total_time' : 180,   
+        'topics' : ['A', 'B', 'X'],
+        'proportions' : [.33, .33, .34],
+        'study_type_list' : ['memory', 'memory', 'practice'], 
+    }
     # ADDEDADDEDADDEDADDEDADDED 
 
     topic_info_objects = initialize_topic_info(user_input_info)
@@ -378,9 +404,10 @@ if __name__ == "__main__":
     #     print(topic_info)
 
 
-    new_events_list = create_list_of_events(topic_info_grouped_by_type_dict)
+    new_events_list = create_list_of_all_events_to_schedule(topic_info_grouped_by_type_dict)
 
     #TODO: should be distributed by type AND topic, right now only by topic
+    # MAYBE - not sure if this is interleaving or just task-switching
     sorted_topic_list = sorted(new_events_list, key = len, reverse=True)
 
     final_order = interleave(sorted_topic_list)

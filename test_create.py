@@ -3,13 +3,41 @@ test the function of create_schedule.py
 """
 import datetime
 from datetime import time
+import pytz
 
 import unittest
 from unittest import mock
+
 import create_schedule
 import get_calendar_data
 
 SCOPES = ["https://www.googleapis.com/auth/calendar.readonly"]
+
+
+#TODO: refactor code into helper functions 
+
+class Helpers:
+      
+    #TODO: maybe delete this method. Or if keeping it, replace -07:00 with LA timezone via pytz 
+    @staticmethod
+    def create_sample_event(start_time, end_time):
+        # format: 'T11:30:00-07:00'
+        date = str(datetime.date.today())
+        existing_event = {'start' : {'dateTime' : date + start_time}, 'end' : {'dateTime' : date + end_time}}
+        return existing_event
+
+    @staticmethod
+    def assertEqual_all_attriubutes(event_expected, event_result):
+        
+        attributes_expected = [attr for attr in dir(event_expected) if not callable(getattr(event_expected, attr)) and not attr.startswith("__")]
+        attributes_result = [attr for attr in dir(event_result) if not callable(getattr(event_result, attr))and not attr.startswith("__")]
+        for attr_name in attributes_expected:
+            attr_expected = getattr(event_expected, attr_name)
+            attr_result = getattr(event_result, attr_name)
+            print('attr_expected', attr_expected)
+            print('attr_result', attr_result)
+            assert attr_expected == attr_result, f"attributes do not match. Expected: {attr_expected}, Result: {attr_result}"
+
 
 #TODO: separate into separate classes
 class test_create(unittest.TestCase):
@@ -47,14 +75,7 @@ class test_create(unittest.TestCase):
 
     ## ------------------------End of test block---------------------
 
-    #TODO: refactor code into helper functions 
-    def helper_create_sample_events(self):
-        date = str(datetime.date.today())
-        existing_events = [
-            {'start' : {'dateTime' : date + 'T10:00:00-07:00'}, 'end' : {'dateTime' : date + 'T11:30:00-07:00'}},
-            {'start' : {'dateTime' : date + 'T11:30:00-07:00'}, 'end' : {'dateTime' : date + 'T12:30:00-07:00'}},
-            ]
-
+  
     def test_get_todays_calendar(self):
 
         start_date = "2023-10-04"
@@ -68,7 +89,8 @@ class test_create(unittest.TestCase):
         print(type(events[0]['start']['dateTime']))
 
 
-    def test_schedule_events_in_google_calendar1(self):
+    # 1 and 2 use mock.patch to mock get_todays_calendar
+    def test_schedule_times_for_events1(self):
         # input:
 
         date = str(datetime.date.today())
@@ -80,27 +102,22 @@ class test_create(unittest.TestCase):
 
         # output:
         with mock.patch('create_schedule.get_todays_calendar', return_value = existing_events):
-            result = create_schedule.schedule_events_in_google_calendar(new_events)
-        print('mock shedule: ', schedule)
+            result = create_schedule.schedule_times_for_events(new_events)
+        print('mock shedule: ', result)
         # expected: 
         event1 = create_schedule.Event('A', 60, 'practice')
         event2 = create_schedule.Event('B', 60, 'practice')
-        event1.start_time, event1.end_time = datetime.datetime.strptime(date + 'T09:00:00-07:00', '%Y-%m-%dT%H:%M:%S%z'), datetime.datetime.strptime(date + 'T10:00:00-07:00', '%Y-%m-%dT%H:%M:%S%z') 
-        event2.start_time, event2.end_time = datetime.datetime.strptime(date + 'T12:30:00-07:00', '%Y-%m-%dT%H:%M:%S%z'), datetime.datetime.strptime(date + 'T13:30:00-07:00', '%Y-%m-%dT%H:%M:%S%z')
+        event1.start_time, event1.end_time = create_schedule.helper_create_timezone_datetime_object('T09:00:00'), create_schedule.helper_create_timezone_datetime_object('T10:00:00') 
+        event2.start_time, event2.end_time = create_schedule.helper_create_timezone_datetime_object('T12:30:00'), create_schedule.helper_create_timezone_datetime_object('T13:30:00') 
 
         expected = [event1, event2]
 
         # tests: 
         # check that each attribute matches for each event in the schedule
         for event_expected, event_result in zip(expected, result):
-            attributes_expected = [attr for attr in dir(event_expected) if not callable(getattr(event_expected, attr)) and not attr.startswith("__")]
-            attributes_result = [attr for attr in dir(event_result) if not callable(getattr(event_result, attr))and not attr.startswith("__")]
-            for attr_name in attributes_expected:
-                attr_expected = getattr(event_expected, attr_name)
-                attr_result = getattr(event_result, attr_name)
-                self.assertEqual(attr_expected, attr_result)
+            Helpers.assertEqual_all_attriubutes(event_expected, event_result)
 
-    def test_schedule_events_in_google_calendar2(self):
+    def test_schedule_times_for_events2(self):
         # input:
 
         date = str(datetime.date.today())
@@ -112,65 +129,48 @@ class test_create(unittest.TestCase):
 
         # output:
         with mock.patch('create_schedule.get_todays_calendar', return_value = existing_events):
-            result = create_schedule.schedule_events_in_google_calendar(new_events)
-        print('mock shedule: ', schedule)
+            result = create_schedule.schedule_times_for_events(new_events)
+        print('mock shedule: ', result)
 
         # expected: 
         event1 = create_schedule.Event('A', 60, 'practice')
         event2 = create_schedule.Event('B', 60, 'practice')
-        event1.start_time, event1.end_time = datetime.datetime.strptime(date + 'T10:30:00-07:00', '%Y-%m-%dT%H:%M:%S%z'), datetime.datetime.strptime(date + 'T11:30:00-07:00', '%Y-%m-%dT%H:%M:%S%z') 
-        event2.start_time, event2.end_time = datetime.datetime.strptime(date + 'T12:00:00-07:00', '%Y-%m-%dT%H:%M:%S%z'), datetime.datetime.strptime(date + 'T13:00:00-07:00', '%Y-%m-%dT%H:%M:%S%z')
+        event1.start_time, event1.end_time = create_schedule.helper_create_timezone_datetime_object('T10:30:00'), create_schedule.helper_create_timezone_datetime_object('T11:30:00') 
+        event2.start_time, event2.end_time = create_schedule.helper_create_timezone_datetime_object('T12:00:00'), create_schedule.helper_create_timezone_datetime_object('T13:00:00') 
 
         expected = [event1, event2]
         
         # tests: 
         # check that each attribute matches for each event in the schedule
         for event_expected, event_result in zip(expected, result):
-            attributes_expected = [attr for attr in dir(event_expected) if not callable(getattr(event_expected, attr)) and not attr.startswith("__")]
-            attributes_result = [attr for attr in dir(event_result) if not callable(getattr(event_result, attr))and not attr.startswith("__")]
-            for attr_name in attributes_expected:
-                attr_expected = getattr(event_expected, attr_name)
-                attr_result = getattr(event_result, attr_name)
-                print(attr_expected)
-                print(attr_result)
-                self.assertEqual(attr_expected, attr_result)
+           Helpers.assertEqual_all_attriubutes(event_expected, event_result)
 
-    #TODO: finish this  
-        #TODO: use function that adds an event to the calendar at X time on current date
-    def test_schedule_events_in_google_calendar3(self):
+    # 3 adds actual test event to the calendar
+    def test_schedule_times_for_events3(self):
+         # add test events to google calendar:
+        date = str(datetime.date.today())
+        event_to_add = create_schedule.Event('A', 60, 'practice')
+        event_to_add.start_time, event_to_add.end_time = date + 'T10:30:00', date + 'T11:00:00'
+        create_schedule.create_google_calendar_event(event_to_add)
+       
         # input:
         new_events = [create_schedule.Event('A', 60, 'practice'), create_schedule.Event('B', 60, 'practice')]
 
-        # add test events to google calendar:
-        create_schedule.create_google_calendar_event()
-
         # output:
-        result = create_schedule.schedule_events_in_google_calendar(new_events)
+        result = create_schedule.schedule_times_for_events(new_events)
 
         # expected: 
         event1 = create_schedule.Event('A', 60, 'practice')
         event2 = create_schedule.Event('B', 60, 'practice')
         
-        date = str(datetime.date.today())
-        event1.start_time, event1.end_time = datetime.datetime.strptime(date + 'T10:00:00', '%Y-%m-%dT%H:%M:%S'), datetime.datetime.strptime(date + 'T11:00:00', '%Y-%m-%dT%H:%M:%S') 
-        event2.start_time, event2.end_time = datetime.datetime.strptime(date + 'T12:00:00', '%Y-%m-%dT%H:%M:%S'), datetime.datetime.strptime(date + 'T13:00:00', '%Y-%m-%dT%H:%M:%S')
-        print('start and end event1: ', event1.start_time, event1.end_time)
-        print('start and end event2: ', event2.start_time, event2.end_time)
+        event1.start_time, event1.end_time = create_schedule.helper_create_timezone_datetime_object('T09:00:00'), create_schedule.helper_create_timezone_datetime_object('T10:00:00') 
+        event2.start_time, event2.end_time = create_schedule.helper_create_timezone_datetime_object('T11:00:00'), create_schedule.helper_create_timezone_datetime_object('T12:00:00') 
 
         expected = [event1, event2]
-        
-        #for event
 
         # tests: 
-        # for event_expected, event_result in zip(expected, result):
-        #     attributes_expected = [attr for attr in dir(event_expected) if not callable(getattr(event_expected, attr)) and not attr.startswith("__")]
-        #     attributes_result = [attr for attr in dir(event_result) if not callable(getattr(event_result, attr))and not attr.startswith("__")]
-        #     for attr_name in attributes_expected:
-        #         attr_expected = getattr(event_expected, attr_name)
-        #         attr_result = getattr(event_result, attr_name)
-        #         print(attr_expected)
-        #         print(attr_result)
-        #         self.assertEqual(attr_expected, attr_result)
+        for event_expected, event_result in zip(expected, result):
+            Helpers.assertEqual_all_attriubutes(event_expected, event_result)
 
     #----------------------End of test block---------------------
     
@@ -248,12 +248,12 @@ class test_create(unittest.TestCase):
         # makes sure that each element is maximally distributed 
         for subject in subject_list:
             indexes = [index for index, value in enumerate(result) if value == subject]
-            differences =[]
+            distances_from_same_subject =[]
             for i in range(len(indexes)-1):
-                differences.append(indexes[i+1] - indexes[i])
-            for i in range(len(differences)-1):
-                self.assertTrue(abs(differences[i+1]-differences[i]) <= 1)
-                print(abs(differences[i+1]-differences[i]))
+                distances_from_same_subject.append(indexes[i+1] - indexes[i])
+            for i in range(len(distances_from_same_subject)-1):
+                self.assertTrue(abs(distances_from_same_subject[i+1]-distances_from_same_subject[i]) <= 1)
+                print(abs(distances_from_same_subject[i+1]-distances_from_same_subject[i]))
         
     def test_interleave4(self):
         # input:
@@ -270,17 +270,59 @@ class test_create(unittest.TestCase):
 
         # tests:
         subject_list = ['A', 'B', 'X']
+        
+        #TODO: replace w/ helper function
         # makes sure that each element is maximally distributed 
         for subject in subject_list:
-            indexes = [index for index, value in enumerate(result) if value == subject]
-            differences =[]
+            indexes = [index for index, value in enumerate(result) if value == subject] # gets all indexes for given subject
+            distances_from_same_subject =[] 
             for i in range(len(indexes)-1):
-                differences.append(indexes[i+1] - indexes[i])
-            for i in range(len(differences)-1):
-                self.assertTrue(abs(differences[i+1]-differences[i]) <= 1)
-                print(abs(differences[i+1]-differences[i]))
-        
-    ## ------------------------End of test block---------------------
+                distances_from_same_subject.append(indexes[i+1] - indexes[i])
+            for i in range(len(distances_from_same_subject)-1):
+                self.assertTrue(abs(distances_from_same_subject[i+1]-distances_from_same_subject[i]) <= 1)
+                print(abs(distances_from_same_subject[i+1]-distances_from_same_subject[i]))
+
+    # TODO: MAYBE delete this test
+    # create test for maximizing topic AND type distances 
+    def test_interleave_by_study_type(self):
+            # input:
+            lens = [1, 1, 1]
+            eventA = create_schedule.Event('A', 60, 'type 1')
+            eventB = create_schedule.Event('B', 60, 'type 1')
+            eventX = create_schedule.Event('X', 60, 'type 2')
+
+            events_1 = [eventA] * lens[0]
+            events_2 = [eventB] * lens[1]
+            events_3 = [eventX] * lens[2]
+
+            events = sorted([events_1, events_2, events_3], key=len, reverse = True)
+            print(events)
+
+            # result:
+            result = create_schedule.interleave(events)
+
+            # tests:
+            subject_list = ['A', 'B', 'X']
+            
+            #TODO: replace w/ helper function
+            # makes sure that each element is maximally distributed 
+            
+            # for subject in subject_list:
+            #     indexes = [index for index, value in enumerate(result) if value == subject] # gets all indexes for given subject
+            #     distances_from_same_subject =[] 
+            #     for i in range(len(indexes)-1):
+            #         distances_from_same_subject.append(indexes[i+1] - indexes[i])
+            #     for i in range(len(distances_from_same_subject)-1):
+            #         self.assertTrue(abs(distances_from_same_subject[i+1]-distances_from_same_subject[i]) <= 1)
+            #         print(abs(distances_from_same_subject[i+1]-distances_from_same_subject[i]))
+
+
+
+
+
+        ## ------------------------End of test block---------------------
+
+    #----------------------End of test block---------------------
 
     def test_build_events_for_memory_topic1(self):
         # Create a mock TopicInfo instance for testing
