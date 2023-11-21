@@ -73,6 +73,26 @@ class test_create(unittest.TestCase):
    
     ## ------------------------End of test block---------------------
 
+
+
+
+    def test_add_events_to_google_calendar():
+        
+        # make sure format is correct
+        
+        event = {
+        'summary': event.topic + ' ' + event.study_type,
+        'description': 'NA',
+        'start': {'dateTime': event.start_time, 'timeZone': "America/Los_Angeles"},
+        'end': {'dateTime': event.end_time, 'timeZone': "America/Los_Angeles"},
+        'reminders': {
+            'useDefault': False,
+            'overrides': [],
+        },
+    }
+    
+        pass
+
     ## ------------------------End of test block---------------------
 
   
@@ -90,7 +110,7 @@ class test_create(unittest.TestCase):
 
 
     # 1 and 2 use mock.patch to mock get_todays_calendar
-    def test_schedule_times_for_events1(self):
+    def test_add_start_and_end_times_for_events1(self):
         # input:
 
         date = str(datetime.date.today())
@@ -102,7 +122,7 @@ class test_create(unittest.TestCase):
 
         # output:
         with mock.patch('create_schedule.get_todays_calendar', return_value = existing_events):
-            result = create_schedule.schedule_times_for_events(new_events)
+            result = create_schedule.add_start_and_end_times_for_events(new_events)
         print('mock shedule: ', result)
         # expected: 
         event1 = create_schedule.Event('A', 60, 'practice')
@@ -117,7 +137,7 @@ class test_create(unittest.TestCase):
         for event_expected, event_result in zip(expected, result):
             Helpers.assertEqual_all_attriubutes(event_expected, event_result)
 
-    def test_schedule_times_for_events2(self):
+    def test_add_start_and_end_times_for_events2(self):
         # input:
 
         date = str(datetime.date.today())
@@ -129,7 +149,7 @@ class test_create(unittest.TestCase):
 
         # output:
         with mock.patch('create_schedule.get_todays_calendar', return_value = existing_events):
-            result = create_schedule.schedule_times_for_events(new_events)
+            result = create_schedule.add_start_and_end_times_for_events(new_events)
         print('mock shedule: ', result)
 
         # expected: 
@@ -146,7 +166,7 @@ class test_create(unittest.TestCase):
            Helpers.assertEqual_all_attriubutes(event_expected, event_result)
 
     # 3 adds actual test event to the calendar
-    def test_schedule_times_for_events3(self):
+    def test_add_start_and_end_times_for_events3(self):
          # add test events to google calendar:
         date = str(datetime.date.today())
         event_to_add = create_schedule.Event('A', 60, 'practice')
@@ -157,7 +177,7 @@ class test_create(unittest.TestCase):
         new_events = [create_schedule.Event('A', 60, 'practice'), create_schedule.Event('B', 60, 'practice')]
 
         # output:
-        result = create_schedule.schedule_times_for_events(new_events)
+        result = create_schedule.add_start_and_end_times_for_events(new_events)
 
         # expected: 
         event1 = create_schedule.Event('A', 60, 'practice')

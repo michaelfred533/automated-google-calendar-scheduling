@@ -243,7 +243,7 @@ def build_events_for_memory_topic(topic_info):
 #     print('mixed list: ', mixed_list)
 #     return mixed_list
     
-
+#TODO: refactor into smaller functions
 def interleave(events):
     """
     """
@@ -274,16 +274,16 @@ def interleave(events):
         indexes.append(len(events_more) + len(events_less) - 1)
     print("indexes: ", indexes)
 
-    final_order = copy.copy(events_more)
+    final_order_of_events = copy.copy(events_more)
     for ind, event, i in zip(indexes, events_less, range(len(indexes))):
-        final_order.insert(ind + i, event)
+        final_order_of_events.insert(ind + i, event)
     
 
     print('Interleave results: ')
-    for event in final_order:
+    for event in final_order_of_events:
         print(event)
 
-    return final_order
+    return final_order_of_events
 
 def create_list_of_all_events_to_schedule(topic_info_grouped_by_type_dict):
     
@@ -307,6 +307,60 @@ def get_todays_calendar():
 
     return events
 
+def add_start_and_end_times_for_events(new_events_list):
+   
+    def add_start_end_duration_to_existing_events(existing_events):
+        for event in existing_events:
+            event['start_time'] = pytz.timezone('America/Los_Angeles').localize(datetime.datetime.strptime(event['start']['dateTime'][:-6], '%Y-%m-%dT%H:%M:%S'))
+            event['end_time'] = pytz.timezone('America/Los_Angeles').localize(datetime.datetime.strptime(event['end']['dateTime'][:-6], '%Y-%m-%dT%H:%M:%S'))
+            event['duration'] = (event['end_time'] - event['start_time']).total_seconds() / 60
+    
+    def find_non_overlaping_time(existing_events, proposed_new_event_time):
+        def update_start_and_end_times(proposed_new_event_time):
+            proposed_new_event_time['start'] = existing_event['end_time']
+            proposed_new_event_time['end'] = proposed_new_event_time['start'] + datetime.timedelta(minutes = new_event.duration)
+            print('updated start time: ', proposed_new_event_time['start'])
+            return proposed_new_event_time
+        
+        for existing_event in existing_events:
+            if proposed_new_event_time['start'] < existing_event['end_time'] and proposed_new_event_time['end'] > existing_event['start_time']:
+                print('overlap found! proposed start: ', proposed_new_event_time['start'], 'existing event start: ', existing_event['start_time'])
+                proposed_new_event_time = update_start_and_end_times(proposed_new_event_time)
+
+        return proposed_new_event_time
+
+    def add_start_and_end_time_to_new_event(new_event, proposed_new_event_time):
+            new_event.start_time = proposed_new_event_time['start']
+            new_event.end_time = proposed_new_event_time['end']
+
+    proposed_new_event_time = {
+        'start': helper_create_timezone_datetime_object('T09:00:00'),
+        'end': None
+    }
+    
+    existing_events = get_todays_calendar()
+    add_start_end_duration_to_existing_events(existing_events)
+    
+    schedule = []
+    for new_event in new_events_list:
+        
+        proposed_new_event_time['end'] = proposed_new_event_time['start'] + datetime.timedelta(minutes = new_event.duration)  
+        proposed_new_event_time = find_non_overlaping_time(existing_events, proposed_new_event_time)            
+        
+        add_start_and_end_time_to_new_event(new_event, proposed_new_event_time)
+        schedule.append(new_event)
+        
+        print('added event at this time: ', proposed_new_event_time['start'])
+        
+
+        proposed_new_event_time['start'] = proposed_new_event_time['end']
+
+    return schedule 
+
+
+# TODO: should this be moved to be a nested function?
+    # can I change the test script code such that I can use the outer function for adding google calendar events?
+    # test add_start_and_end_time_to_new_events4
 def create_google_calendar_event(event):
 
     def add_event_to_google_calendar(event):
@@ -326,61 +380,21 @@ def create_google_calendar_event(event):
 
     add_event_to_google_calendar(event)
 
-#TODO: will need to convert event.start_time / event.end_time back to strings after checking for overlap using datetime obj
-def schedule_times_for_events(new_events_list):
-   
-    def add_start_end_duration_to_existing_events(existing_events):
-        for event in existing_events:
-            event['start_time'] = pytz.timezone('America/Los_Angeles').localize(datetime.datetime.strptime(event['start']['dateTime'][:-6], '%Y-%m-%dT%H:%M:%S'))
-            event['end_time'] = pytz.timezone('America/Los_Angeles').localize(datetime.datetime.strptime(event['end']['dateTime'][:-6], '%Y-%m-%dT%H:%M:%S'))
-            event['duration'] = (event['end_time'] - event['start_time']).total_seconds() / 60
+#TODO: will need to convert event.start_time / event.end_time back to strings 
+def add_events_to_google_calendar(final_order_of_events):
     
-    def update_time_to_avoid_overlaps(existing_events, proposed_new_event_time):
-        def update_start_and_end_times(proposed_new_event_time):
-            proposed_new_event_time['start'] = existing_event['end_time']
-            proposed_new_event_time['end'] = proposed_new_event_time['start'] + datetime.timedelta(minutes = new_event.duration)
-            print('updated start time: ', proposed_new_event_time['start'])
-            return proposed_new_event_time
-        
-        for existing_event in existing_events:
-            if proposed_new_event_time['start'] < existing_event['end_time'] and proposed_new_event_time['end'] > existing_event['start_time']:
-                print('overlap found! proposed start: ', proposed_new_event_time['start'], 'existing event start: ', existing_event['start_time'])
-                proposed_new_event_time = update_start_and_end_times(proposed_new_event_time)
+    def convert_to_google_format():
+        pass
 
-        return proposed_new_event_time
-
-    
-    proposed_new_event_time = {
-        'start': helper_create_timezone_datetime_object('T09:00:00'),
-        'end': None
-    }
-    
-    existing_events = get_todays_calendar()
-
-    add_start_end_duration_to_existing_events(existing_events)
+    for event in final_order_of_events:
+        print(event.start_time)
+        print(event.end_time)
 
 
-    schedule = []
-    for new_event in new_events_list:
-        proposed_new_event_time['end'] = proposed_new_event_time['start'] + datetime.timedelta(minutes = new_event.duration)  
 
-        proposed_new_event_time = update_time_to_avoid_overlaps(existing_events, proposed_new_event_time)
-
-        print('added event at this time: ', proposed_new_event_time['start'])
-        def add_event_to_schedule(new_event, schedule, proposed_new_event_time):
-            new_event.start_time, new_event.end_time = proposed_new_event_time['start'], proposed_new_event_time['end']
-            schedule.append(new_event)
-            return schedule
-        
-        schedule = add_event_to_schedule(new_event, schedule, proposed_new_event_time)
-        
-        proposed_new_event_time['start'] = proposed_new_event_time['end']
-
-    return schedule 
 
 
 #TODO: make REALLY small funcitons - even 1 line if it improved readability
-
 if __name__ == "__main__":
     # user_input_info = get_user_input()
 
@@ -403,15 +417,15 @@ if __name__ == "__main__":
     # for topic_info in topic_info_objects:
     #     print(topic_info)
 
-
     new_events_list = create_list_of_all_events_to_schedule(topic_info_grouped_by_type_dict)
 
     #TODO: should be distributed by type AND topic, right now only by topic
     # MAYBE - not sure if this is interleaving or just task-switching
     sorted_topic_list = sorted(new_events_list, key = len, reverse=True)
 
-    final_order = interleave(sorted_topic_list)
- 
+    final_order_of_events = interleave(sorted_topic_list)
+    final_order_of_events = add_start_and_end_times_for_events(final_order_of_events)
+    add_events_to_google_calendar(final_order_of_events)
 
 
 
