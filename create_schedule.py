@@ -288,64 +288,67 @@ def build_events_for_memory_topic(topic_info):
             memory_block_duration = min(45, topic_info.time_remaining)
             add_memory_block_event(topic_info, memory_block_duration) 
       
+
+def interleave(list_of_each_topics_event_lists):
+    """
+    """
+
+    def evenly_distribute_events_less_into_events_more(events):
         
-#TODO probably delete mix_lists function - it's better to sort descending on length      
-# def mix_lists(events_1, events_2):
-#     """
-    
-#     """
-#     if len(events_1) >= len(events_2):
-#         events_long, events_short = events_1, events_2
-#     else:
-#         events_long, events_short = events_2, events_1 
+        def calculate_number_of_times_to_split_events_more_list(events):
+            splits = round(len(events['more']) / (len(events['less']) + 1))
+            # ensures at least 1 split
+            splits = max(splits, 1)
+            print('splits: ', splits)
 
-#     mixed_list = []
-#     for event_short, event_long in zip(events_short, events_long):
-#         mixed_list.extend([event_long, event_short])
+            return splits
+        
+        def find_indexes_to_insert_events_less_into_events_more_list(events, splits):
 
-#     length_difference = len(events_long) - len(events_short)
-#     if length_difference > 0: 
-#         mixed_list.extend(events_long[-length_difference:])
+            def add_extra_index_at_end_of_list(events, indexes):
+                final_index = len(events['more']) + len(events['less']) - 1
+                indexes.append(final_index)
+
+                return indexes
+            
+            indexes = [ind for ind in range(splits, len(events['more'])) if ind % splits == 0]
+            if len(indexes) < len(events['less']):
+                print('indexes shorter than num of events: ', indexes, 'num events: ', len(events['less']))
+                add_extra_index_at_end_of_list(events, indexes)
 
 
-#     print('mixed list: ', mixed_list)
-#     return mixed_list
-    
-#TODO: refactor into smaller functions
-def interleave(events):
-    """
-    """
+            print("indexes: ", indexes)
+
+            return indexes
+
+        splits = calculate_number_of_times_to_split_events_more_list(events)
+
+        indexes = find_indexes_to_insert_events_less_into_events_more_list(events, splits)
+
+        events_in_final_order = copy.copy(events['more'])
+        for ind, event, i in zip(indexes, events['less'], range(len(indexes))):
+            events_in_final_order.insert(ind + i, event)
+
+        return events_in_final_order
+  
     #TODO: error handling 
-    if len(events) <= 1:
-        print('events list is length 1 or 0: ', events)
+    if len(list_of_each_topics_event_lists) <= 1:
+        print('events list is length 1 or 0: ', list_of_each_topics_event_lists)
         raise ValueError
-    elif len(events) > 2:
-        print('ENTERING recursion: ', events[1:])
+    elif len(list_of_each_topics_event_lists) > 2:
+        print('ENTERING recursion: ', list_of_each_topics_event_lists[1:])
         print()
-        interleaved_events = interleave(events[1:])
-        events = [events[0], interleaved_events] # create new list with interleaved events and leftover events
+        interleaved_events = interleave(list_of_each_topics_event_lists[1:])
+        list_of_each_topics_event_lists = [list_of_each_topics_event_lists[0], interleaved_events] # create new list with interleaved events and leftover events
     
     print('EXITING recursion')
 
-    if len(events[0]) >= len(events[1]):
-        events_more, events_less = events[0], events[1]
-    else:
-        events_more, events_less = events[1], events[0]
+    events = {
+        'more': list_of_each_topics_event_lists[1],
+        'less' : list_of_each_topics_event_lists[0],
+        }
 
-    # ensures splits is at least 1
-    splits = max(round(len(events_more) / (len(events_less) + 1)), 1)
-    print('splits: ', splits)
-    
-    indexes = [ind for ind in range(splits, len(events_more)) if ind % splits == 0]
-    if len(indexes) < len(events_less):
-        print('indexes shorter than num of events: ', indexes, 'num events: ', len(events_less))
-        indexes.append(len(events_more) + len(events_less) - 1)
-    print("indexes: ", indexes)
-
-    events_in_final_order = copy.copy(events_more)
-    for ind, event, i in zip(indexes, events_less, range(len(indexes))):
-        events_in_final_order.insert(ind + i, event)
-    
+    events_in_final_order = evenly_distribute_events_less_into_events_more(events)
 
     print('Interleave results: ')
     for event in events_in_final_order:
@@ -361,7 +364,6 @@ def create_list_of_all_events_to_schedule(topic_info_grouped_by_type_dict):
             new_events_list.append(topic_info.events)
 
     return new_events_list
-
 
 
 def get_todays_calendar():
@@ -445,14 +447,13 @@ if __name__ == "__main__":
 
     build_events_for_all_topics(topic_info_grouped_by_type_dict)
 
-    new_events_list = create_list_of_all_events_to_schedule(topic_info_grouped_by_type_dict)
+    list_of_each_topics_event_lists = create_list_of_all_events_to_schedule(topic_info_grouped_by_type_dict)
 
     #TODO: should be distributed by type AND topic, right now only by topic
     # MAYBE - not sure if this is interleaving or just task-switching
-    sorted_topic_list = sorted(new_events_list, key = len, reverse=True)
+    sorted_list_of_each_topics_event_lists = sorted(list_of_each_topics_event_lists, key = len, reverse=True)
 
-    events_in_final_order = interleave(sorted_topic_list)
-    #events_in_final_order = separate_nested_events(events_in_final_order)
+    events_in_final_order = interleave(sorted_list_of_each_topics_event_lists)
     events_in_final_order = add_start_and_end_times_for_events(events_in_final_order)
     add_events_to_google_calendar(events_in_final_order)
 

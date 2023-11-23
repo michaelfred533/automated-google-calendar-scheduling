@@ -68,36 +68,7 @@ def get_events(service, start_date, end_date):
     """
 
 
-    # # 1) Gather credentials / log in --------------------------
-
-    # creds = None
-    # # The file token.json stores the user's access and refresh tokens, and is
-    # # created automatically when the authorization flow completes for the first
-    # # time.
-    # if os.path.exists("token.json"):
-    #     creds = Credentials.from_authorized_user_file("token.json", SCOPES)
-
-    # # If there are no (valid) credentials available, let the user log in.
-    # if not creds or not creds.valid:
-    #     # Refresh creds if they are expired
-    #     if creds and creds.expired and creds.refresh_token:
-    #         creds.refresh(Request())
-    #     # Have user login to get creds
-    #     else:
-    #         flow = (
-    #             InstalledAppFlow.from_client_secrets_file(  # construct instance of flow
-    #                 "credentials.json", SCOPES
-    #             )
-    #         )
-    #         creds = flow.run_local_server(port=0)
-    #     # Save the credentials for the next run
-    #     with open("token.json", "w") as token:
-    #         token.write(creds.to_json())
-
-    # service = build(
-    #     "calendar", "v3", credentials=creds
-    # )  # Creates the resource for interacting with the calendar api
-
+   
     # 2) Define the time period to collect data from --------------------
 
     start_date = (
