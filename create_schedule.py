@@ -27,7 +27,8 @@ SCOPES = ["https://www.googleapis.com/auth/calendar"]
 
 # ----------------------------------------------------------------------------------------------------------------
 
-
+# TODO: this should be moved to test script, because it is only used once in this script
+    # adjust function calls in test script too
 def helper_create_timezone_datetime_object(time_ISO_string):
     date = datetime.datetime.today().date()
     datetime_string = str(date) + time_ISO_string
@@ -44,8 +45,57 @@ class Event:
         self.study_type = study_type
         self.start_time = self.end_time = "pending"
 
+    def set_start_and_end_times(self, start_and_end_times):
+        self.start_time = start_and_end_times['start']
+        self.end_time = start_and_end_times['end']
+
     def __str__(self):
         return f"Topic: {self.topic}, Duration: {self.duration}, Study Type: {self.study_type}"
+
+    # TODO: Change the test script code such that I can use the outer function (if I nest this func) for adding google calendar events?
+    # test add_start_and_end_time_to_new_events4
+    def create_google_calendar_event(self):
+
+        def convert_times_to_google_format():
+            '''
+            converts event.start_time and event.end_time from dateTime object of format (2023-11-20 T09:00:00-08:00)
+            into a string of format (2023-11-20 T09:00:00) which is the format used to create a google calendar event
+            '''
+            def add_T_to_time_string(time_string):
+                date = time_string.split(' ')[0]
+                time = time_string.split(' ')[1]
+                time_string = date + 'T' + time
+                
+                return time_string
+            
+            google_format_start_time = str(self.start_time)[:-6]
+            google_format_end_time = str(self.end_time)[:-6]
+
+            google_format_start_time = add_T_to_time_string(google_format_start_time)
+            google_format_end_time = add_T_to_time_string(google_format_end_time) 
+
+            self.start_time = google_format_start_time
+            self.end_time = google_format_end_time
+
+        def add_event_to_google_calendar(event):
+            service = get_calendar_data.access_calendar(SCOPES)
+            event = service.events().insert(calendarId='primary', body=event).execute()
+
+
+        convert_times_to_google_format()
+
+        google_event = {
+            'summary': self.topic + ' - ' + self.study_type,
+            'description': 'NA',
+            'start': {'dateTime': self.start_time, 'timeZone': "America/Los_Angeles"},
+            'end': {'dateTime': self.end_time, 'timeZone': "America/Los_Angeles"},
+            'reminders': {
+                'useDefault': False,
+                'overrides': [],
+            },
+        }
+
+        add_event_to_google_calendar(google_event)
 
 class MemoryBlockEvent(Event):
     def __init__(self, topic, duration, study_type, study_duration, recall_duration):
@@ -54,9 +104,24 @@ class MemoryBlockEvent(Event):
         self.study_event = Event(self.topic, study_duration, 'study')
         self.recall_event = Event(self.topic, recall_duration, 'recall')       
 
+    def set_start_and_end_times(self, start_and_end_times):
+        super().set_start_and_end_times(start_and_end_times)
+        self.study_event.start_time = self.start_time
+        self.study_event.end_time = self.study_event.start_time + datetime.timedelta(minutes = self.study_event.duration)
+        
+        # TODO: could add logic to check that the start and end times align with durations etc. 
+        self.recall_event.start_time = self.study_event.end_time
+        self.recall_event.end_time = self.end_time
+
+
     def __str__(self):
         return f"MemoryBlockEvent: \n\tTopic: {self.topic}, Duration: {self.duration} \n\tStudy Event: ({self.study_event}) \n\tRecall Event: ({self.recall_event})"
         
+    def create_google_calendar_event(self):
+        self.study_event.create_google_calendar_event()
+        self.recall_event.create_google_calendar_event()
+
+# TODO: exception handling
 def get_user_input():
     """
     get user input for activities and what type of activities they are.
@@ -203,14 +268,17 @@ def build_events_for_memory_topic(topic_info):
     
     def add_memory_block_event(topic_info, memory_block_duration):
             
-            recall_duration = 15
-            study_duration = memory_block_duration - recall_duration
+        recall_duration = 15
+        study_duration = memory_block_duration - recall_duration
 
-            memory_block = MemoryBlockEvent(topic_info.topic, memory_block_duration, topic_info.study_type, study_duration, recall_duration)
+        memory_block = MemoryBlockEvent(topic_info.topic, memory_block_duration, topic_info.study_type, study_duration, recall_duration)
 
-            topic_info.events.append(memory_block)
-            topic_info.time_remaining -= memory_block_duration    
-    
+        memory_block.recall_event.duration = recall_duration
+        memory_block.study_event.duration = study_duration
+
+        topic_info.events.append(memory_block)
+        topic_info.time_remaining -= memory_block_duration    
+
     while topic_info.time_remaining > 0:
 
         if topic_info.time_remaining == 60:
@@ -274,16 +342,16 @@ def interleave(events):
         indexes.append(len(events_more) + len(events_less) - 1)
     print("indexes: ", indexes)
 
-    final_order_of_events = copy.copy(events_more)
+    events_in_final_order = copy.copy(events_more)
     for ind, event, i in zip(indexes, events_less, range(len(indexes))):
-        final_order_of_events.insert(ind + i, event)
+        events_in_final_order.insert(ind + i, event)
     
 
     print('Interleave results: ')
-    for event in final_order_of_events:
+    for event in events_in_final_order:
         print(event)
 
-    return final_order_of_events
+    return events_in_final_order
 
 def create_list_of_all_events_to_schedule(topic_info_grouped_by_type_dict):
     
@@ -329,10 +397,6 @@ def add_start_and_end_times_for_events(new_events_list):
 
         return proposed_new_event_time
 
-    def add_start_and_end_time_to_new_event(new_event, proposed_new_event_time):
-            new_event.start_time = proposed_new_event_time['start']
-            new_event.end_time = proposed_new_event_time['end']
-
     proposed_new_event_time = {
         'start': helper_create_timezone_datetime_object('T09:00:00'),
         'end': None
@@ -347,52 +411,20 @@ def add_start_and_end_times_for_events(new_events_list):
         proposed_new_event_time['end'] = proposed_new_event_time['start'] + datetime.timedelta(minutes = new_event.duration)  
         proposed_new_event_time = find_non_overlaping_time(existing_events, proposed_new_event_time)            
         
-        add_start_and_end_time_to_new_event(new_event, proposed_new_event_time)
+        new_event.set_start_and_end_times(proposed_new_event_time)
         schedule.append(new_event)
         
-        print('added event at this time: ', proposed_new_event_time['start'])
-        
-
         proposed_new_event_time['start'] = proposed_new_event_time['end']
 
     return schedule 
 
+  
+def add_events_to_google_calendar(events_in_final_order):    
 
-# TODO: should this be moved to be a nested function?
-    # can I change the test script code such that I can use the outer function for adding google calendar events?
-    # test add_start_and_end_time_to_new_events4
-def create_google_calendar_event(event):
-
-    def add_event_to_google_calendar(event):
-        service = get_calendar_data.access_calendar(SCOPES)
-        event = service.events().insert(calendarId='primary', body=event).execute()
-
-    event = {
-        'summary': event.topic + ' ' + event.study_type,
-        'description': 'NA',
-        'start': {'dateTime': event.start_time, 'timeZone': "America/Los_Angeles"},
-        'end': {'dateTime': event.end_time, 'timeZone': "America/Los_Angeles"},
-        'reminders': {
-            'useDefault': False,
-            'overrides': [],
-        },
-    }
-
-    add_event_to_google_calendar(event)
-
-#TODO: will need to convert event.start_time / event.end_time back to strings 
-def add_events_to_google_calendar(final_order_of_events):
-    
-    def convert_to_google_format():
-        pass
-
-    for event in final_order_of_events:
-        print(event.start_time)
-        print(event.end_time)
-
-
-
-
+    for event in events_in_final_order:
+        
+        event.create_google_calendar_event()
+        
 
 #TODO: make REALLY small funcitons - even 1 line if it improved readability
 if __name__ == "__main__":
@@ -412,10 +444,6 @@ if __name__ == "__main__":
     topic_info_grouped_by_type_dict = group_topic_info_by_type(topic_info_objects)
 
     build_events_for_all_topics(topic_info_grouped_by_type_dict)
-    
-    # print("printing topic info....")
-    # for topic_info in topic_info_objects:
-    #     print(topic_info)
 
     new_events_list = create_list_of_all_events_to_schedule(topic_info_grouped_by_type_dict)
 
@@ -423,9 +451,10 @@ if __name__ == "__main__":
     # MAYBE - not sure if this is interleaving or just task-switching
     sorted_topic_list = sorted(new_events_list, key = len, reverse=True)
 
-    final_order_of_events = interleave(sorted_topic_list)
-    final_order_of_events = add_start_and_end_times_for_events(final_order_of_events)
-    add_events_to_google_calendar(final_order_of_events)
+    events_in_final_order = interleave(sorted_topic_list)
+    #events_in_final_order = separate_nested_events(events_in_final_order)
+    events_in_final_order = add_start_and_end_times_for_events(events_in_final_order)
+    add_events_to_google_calendar(events_in_final_order)
 
 
 
