@@ -20,7 +20,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from google.oauth2 import service_account
 
 import get_calendar_data
-
+import exceptions
 
 #SCOPES = ["https://www.googleapis.com/auth/calendar.readonly"]
 SCOPES = ["https://www.googleapis.com/auth/calendar"]
@@ -37,7 +37,6 @@ def helper_create_timezone_datetime_object(time_ISO_string):
 
     return timezone_datetime_object
 
-#TODO: add @staticmethod decorator to helper functions 
 class Event:
     def __init__(self, topic, duration, study_type):
         self.topic = topic
@@ -52,8 +51,6 @@ class Event:
     def __str__(self):
         return f"Topic: {self.topic}, Duration: {self.duration}, Study Type: {self.study_type}"
 
-    # TODO: Change the test script code such that I can use the outer function (if I nest this func) for adding google calendar events?
-    # test add_start_and_end_time_to_new_events4
     def create_google_calendar_event(self):
 
         def convert_times_to_google_format():
@@ -128,31 +125,56 @@ def get_user_input():
     whether to include free-recall sessions or not
     """
     class HelperUserInput:
-        def get_time(self):
-            while True:
-                total_time = input("How many total hours do you want to spend learning tomorrow? ")
+        
+        @staticmethod
+        def get_time():
+            
+            def exception_handler_get_time(total_time):
+                input_is_correct = False
                 
                 try:
-                    total_time = int(total_time)
+                    total_time = float(total_time)
+                    assert total_time < 15 # tiem to study should be less than 15 hours
+                    input_is_correct = True
                 except ValueError:
-                    continue
+                    print("Error: Please enter a number.")
+                except  AssertionError:
+                    print("Error: Please enter less that 15 hours to spend learning today.")
 
-                if len(str(total_time)) <= 2:
-                    break
-                print("Wrong format. Please try again. The expected format is a 1-2 digit whole number.")
-            
+                return input_is_correct
+
+            input_is_correct = False
+            while not input_is_correct:
+                total_time = input("How many total hours do you want to spend learning tomorrow? ")
+
+                input_is_correct = exception_handler_get_time(total_time)
+                
             total_time = total_time * 60
             return total_time
-        def get_topics(self):
+        
+        @staticmethod
+        def get_topics():
+            
+            def exception_handler_get_topics(topics):
+                pass
+
             while True:    
                 topics = input("Please enter the activities you wish to schedule, seperated by a comma and space. eg. A, B, C: ")
-                topics = topics.split(", ")
-                if len(set(topics)) == len(topics):
-                    break
-                print("There are duplicates in your list. Please try again.")
+                
+                try:
+                    assert ", " in topics
+                    topics = topics.split(", ")
+                    if len(set(topics)) == len(topics):
+                        print("There are duplicates in your list. Please try again.")
+                except ValueError:
+                    pass
+                except AssertionError:
+                    pass
 
             return topics
-        def get_study_type_list(self, topics):
+        
+        @staticmethod
+        def get_study_type_list(topics):
             while True:
                 study_type_list = input(f"The activites you chose: {topics}. Please enter the type for each activity (the current types are 'memory' and 'practice'). eg. memory, practice, practice: ")
                 study_type_list = study_type_list.lower().split(", ")
@@ -161,7 +183,9 @@ def get_user_input():
                 print("ERROR: study_type_list in unexpected format: ", study_type_list, "Please try again. Make sure the length of the list matches the number of activites entered. You entered ", len(topics), " topics.") 
 
             return study_type_list
-        def get_proportions(self, topics):
+        
+        @staticmethod
+        def get_proportions(topics):
             while True:
                 proportions = input("Please input the proportion of your total time you'd like to spend for each activity in order separtated by a comma and space. eg. 0.5, 0.25, 0.25: ")
                 proportions = [float(prop) for prop in proportions.split(", ")]
@@ -171,15 +195,13 @@ def get_user_input():
 
             return proportions
 
-    helper = HelperUserInput()
-
     user_input_info = {}
-    user_input_info['total_time'] = helper.get_time()
+    user_input_info['total_time'] = HelperUserInput.get_time()
 
     while True:
-        user_input_info['topics'] = helper.get_topics()
-        user_input_info['study_type_list'] = helper.get_study_type_list(user_input_info['topics'])
-        user_input_info['proportions'] = helper.get_proportions(user_input_info['topics'])
+        user_input_info['topics'] = HelperUserInput.get_topics()
+        user_input_info['study_type_list'] = HelperUserInput.get_study_type_list(user_input_info['topics'])
+        user_input_info['proportions'] = HelperUserInput.get_proportions(user_input_info['topics'])
         
         if len(user_input_info['topics']) == len(user_input_info['proportions']):
             break
@@ -237,7 +259,7 @@ def build_events_for_all_topics(topic_info_grouped_by_type_dict):
     input: 
     output:
     """
-    #TODO could rewrite this code to support more than 2 types
+    # NOTE: Could rewrite this code to support more than 2 types
     for topic_info in topic_info_grouped_by_type_dict['memory']:
         build_events_for_memory_topic(topic_info)
 
@@ -258,8 +280,8 @@ def build_events_for_practice_topic(topic_info):
 
     while topic_info.time_remaining > 0:
 
-        if topic_info.time_remaining >= 60:
-            add_practice_event(topic_info, 60)
+        if topic_info.time_remaining >= 90:
+            add_practice_event(topic_info, 90)
 
         else:
             add_practice_event(topic_info, topic_info.time_remaining)
@@ -424,21 +446,19 @@ def add_start_and_end_times_for_events(new_events_list):
 def add_events_to_google_calendar(events_in_final_order):    
 
     for event in events_in_final_order:
-        
         event.create_google_calendar_event()
         
 
-#TODO: make REALLY small funcitons - even 1 line if it improved readability
 if __name__ == "__main__":
-    # user_input_info = get_user_input()
+    user_input_info = get_user_input()
 
     # ADDEDADDEDADDEDADDEDADDED
-    user_input_info = {
-        'total_time' : 180,   
-        'topics' : ['A', 'B', 'X'],
-        'proportions' : [.33, .33, .34],
-        'study_type_list' : ['memory', 'memory', 'practice'], 
-    }
+    # user_input_info = {
+    #     'total_time' : 180,   
+    #     'topics' : ['A', 'B', 'X'],
+    #     'proportions' : [.33, .33, .34],
+    #     'study_type_list' : ['memory', 'memory', 'practice'], 
+    # }
     # ADDEDADDEDADDEDADDEDADDED 
 
     topic_info_objects = initialize_topic_info(user_input_info)
@@ -449,7 +469,7 @@ if __name__ == "__main__":
 
     list_of_each_topics_event_lists = create_list_of_all_events_to_schedule(topic_info_grouped_by_type_dict)
 
-    #TODO: should be distributed by type AND topic, right now only by topic
+    # NOTE: Could distribute by type AND topic, right now only by topic
     # MAYBE - not sure if this is interleaving or just task-switching
     sorted_list_of_each_topics_event_lists = sorted(list_of_each_topics_event_lists, key = len, reverse=True)
 
@@ -458,7 +478,5 @@ if __name__ == "__main__":
     add_events_to_google_calendar(events_in_final_order)
 
 
-
-#---------------------------------------
 
 
