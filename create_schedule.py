@@ -20,15 +20,13 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from google.oauth2 import service_account
 
 import get_calendar_data
-import exceptions
+from exceptions import *
 
 #SCOPES = ["https://www.googleapis.com/auth/calendar.readonly"]
 SCOPES = ["https://www.googleapis.com/auth/calendar"]
 
 # ----------------------------------------------------------------------------------------------------------------
 
-# TODO: this should be moved to test script, because it is only used once in this script
-    # adjust function calls in test script too
 def helper_create_timezone_datetime_object(time_ISO_string):
     date = datetime.datetime.today().date()
     datetime_string = str(date) + time_ISO_string
@@ -118,36 +116,32 @@ class MemoryBlockEvent(Event):
         self.study_event.create_google_calendar_event()
         self.recall_event.create_google_calendar_event()
 
-# TODO: exception handling
 def get_user_input():
     """
     get user input for activities and what type of activities they are.
     whether to include free-recall sessions or not
     """
-    class HelperUserInput:
+    class UserInputValidation:
         
         @staticmethod
         def get_time():
             
-            def exception_handler_get_time(total_time):
-                input_is_correct = False
+            while True:
+                total_time = input("How many total hours do you want to spend learning tomorrow? ")
                 
                 try:
                     total_time = float(total_time)
-                    assert total_time < 15 # tiem to study should be less than 15 hours
-                    input_is_correct = True
+                    if total_time >= 15: # time to study should be less than 15 hours
+                        raise TooMuchStudyTimeError
                 except ValueError:
                     print("Error: Please enter a number.")
-                except  AssertionError:
-                    print("Error: Please enter less that 15 hours to spend learning today.")
-
-                return input_is_correct
-
-            input_is_correct = False
-            while not input_is_correct:
-                total_time = input("How many total hours do you want to spend learning tomorrow? ")
-
-                input_is_correct = exception_handler_get_time(total_time)
+                except TooMuchStudyTimeError:
+                    print("Error: Please enter less than 15 hours.")
+                except Exception:
+                    print('Error: Something is wrong with the input information. Please try again.')
+                
+                else:
+                    break
                 
             total_time = total_time * 60
             return total_time
@@ -155,60 +149,102 @@ def get_user_input():
         @staticmethod
         def get_topics():
             
-            def exception_handler_get_topics(topics):
-                pass
-
             while True:    
                 topics = input("Please enter the activities you wish to schedule, seperated by a comma and space. eg. A, B, C: ")
-                
+
                 try:
-                    assert ", " in topics
+                    if ", " not in topics:
+                        raise MissingCommaError
                     topics = topics.split(", ")
-                    if len(set(topics)) == len(topics):
-                        print("There are duplicates in your list. Please try again.")
-                except ValueError:
-                    pass
-                except AssertionError:
-                    pass
+                    if len(topics) >= 10:
+                        raise TooManyTopicsError
+                    if len(set(topics)) != len(topics):
+                        raise DuplicateTopicsError
+                
+                except MissingCommaError:
+                    print('Error: Please separate study activitys by a comma and space.')
+                except TooManyTopicsError:
+                    print('Error: You entered too many topics. Please enter less than 10 topics.')
+                except DuplicateTopicsError:
+                    print("Error: There are duplicates in your list. Please try again.")
+                except Exception:
+                    print('Error: Something is wrong with the input information. Please try again.')
+
+
+                else:
+                    break
+
 
             return topics
         
         @staticmethod
         def get_study_type_list(topics):
+
             while True:
-                study_type_list = input(f"The activites you chose: {topics}. Please enter the type for each activity (the current types are 'memory' and 'practice'). eg. memory, practice, practice: ")
-                study_type_list = study_type_list.lower().split(", ")
-                if all(study_type == "memory" or study_type == 'practice' for study_type in study_type_list) and (len(study_type_list) == len(topics)):
+                print(f"The activites you chose: {topics}.")
+                study_type_list = input("Please enter the type for each activity (the current types are 'memory' and 'practice'). eg. memory, practice, practice: ")
+
+                try:
+                    if ", " not in study_type_list:
+                        raise MissingCommaError
+                    study_type_list = study_type_list.lower().split(", ")
+                    if len(study_type_list) != len(topics):
+                        raise LengthMismatchError
+                    if not all(study_type == 'memory' or study_type == 'practice' for study_type in study_type_list):
+                        raise IncorrectTypeError
+
+                except MissingCommaError:
+                    print("Error: Please enter each study type separated by a comma and space.")
+                except LengthMismatchError:
+                    print("Error: The length of the entered list does not match the length of the topics list.")
+                except IncorrectTypeError:
+                    print("Error: One or more of the types you entered does not match the supported types.")
+                except Exception:
+                    print('Error: Something is wrong with the input information. Please try again.')
+
+                else: 
                     break
-                print("ERROR: study_type_list in unexpected format: ", study_type_list, "Please try again. Make sure the length of the list matches the number of activites entered. You entered ", len(topics), " topics.") 
 
             return study_type_list
         
         @staticmethod
         def get_proportions(topics):
             while True:
+                print(f"The activites you chose: {topics}.")
                 proportions = input("Please input the proportion of your total time you'd like to spend for each activity in order separtated by a comma and space. eg. 0.5, 0.25, 0.25: ")
-                proportions = [float(prop) for prop in proportions.split(", ")]
-                if sum(proportions) == 1.0:
+                
+                try:
+                    if ", " not in proportions:
+                        raise MissingCommaError
+    
+                    proportions = [float(prop) for prop in proportions.split(", ")]
+                    if len(proportions) != len(topics):
+                        raise LengthMismatchError
+                    if sum(proportions) != 1.0:
+                        raise ProportionsDontAddToOneError
+                except MissingCommaError:
+                    print('Error: Please separate proportions by a comma and space.')
+                except ValueError:
+                    print('Error: Please enter numbers only.')
+                except LengthMismatchError:
+                    print('Error: The number of proportions does not match the number of topics entered.')
+                except ProportionsDontAddToOneError:
+                    print("Error: proportions do not add to 1: ", proportions)
+                except Exception:
+                    print('Error: Something is wrong with the input information. Please try again.')
+
+                else:
                     break
-                print("ERROR: proportions do not add to 1: ", proportions, "Please try again")
 
             return proportions
 
     user_input_info = {}
-    user_input_info['total_time'] = HelperUserInput.get_time()
 
-    while True:
-        user_input_info['topics'] = HelperUserInput.get_topics()
-        user_input_info['study_type_list'] = HelperUserInput.get_study_type_list(user_input_info['topics'])
-        user_input_info['proportions'] = HelperUserInput.get_proportions(user_input_info['topics'])
-        
-        if len(user_input_info['topics']) == len(user_input_info['proportions']):
-            break
-        
-        print("ERROR: The number of activities and the number of proportions entered do not match. Please try again.")
-        print("topics length is ", len(user_input_info['topics']), "and proportions length is ", len(user_input_info['proportions']))
-
+    user_input_info['total_time'] = UserInputValidation.get_time()
+    user_input_info['topics'] = UserInputValidation.get_topics()
+    user_input_info['study_type_list'] = UserInputValidation.get_study_type_list(user_input_info['topics'])
+    user_input_info['proportions'] = UserInputValidation.get_proportions(user_input_info['topics'])
+    
     return user_input_info
 
 class TopicInfo:
@@ -442,7 +478,6 @@ def add_start_and_end_times_for_events(new_events_list):
 
     return schedule 
 
-  
 def add_events_to_google_calendar(events_in_final_order):    
 
     for event in events_in_final_order:
@@ -450,16 +485,16 @@ def add_events_to_google_calendar(events_in_final_order):
         
 
 if __name__ == "__main__":
-    user_input_info = get_user_input()
+    # user_input_info = get_user_input()
 
-    # ADDEDADDEDADDEDADDEDADDED
-    # user_input_info = {
-    #     'total_time' : 180,   
-    #     'topics' : ['A', 'B', 'X'],
-    #     'proportions' : [.33, .33, .34],
-    #     'study_type_list' : ['memory', 'memory', 'practice'], 
-    # }
-    # ADDEDADDEDADDEDADDEDADDED 
+    # ADDEDADDEDADDEDADDEDADDED for testing
+    user_input_info = {
+        'total_time' : 180,   
+        'topics' : ['A', 'B', 'X'],
+        'proportions' : [.33, .33, .34],
+        'study_type_list' : ['memory', 'memory', 'practice'], 
+    }
+    # ADDEDADDEDADDEDADDEDADDED for testing
 
     topic_info_objects = initialize_topic_info(user_input_info)
 
