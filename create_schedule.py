@@ -10,6 +10,7 @@ import pandas as pd
 import logging
 import copy
 import pytz
+from dataclasses import dataclass, field
 
 from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -35,12 +36,19 @@ def helper_create_timezone_datetime_object(time_ISO_string):
 
     return timezone_datetime_object
 
+#TODO: remove test script funtion that checks if attrs are equal between event class instances
+@dataclass
 class Event:
-    def __init__(self, topic, duration, study_type):
-        self.topic = topic
-        self.duration = duration
-        self.study_type = study_type
-        self.start_time = self.end_time = "pending"
+
+    topic: str
+    duration: int
+    study_type: str
+
+    # def __init__(self, topic, duration, study_type):
+    #     self.topic = topic
+    #     self.duration = duration
+    #     self.study_type = study_type
+    #     self.start_time = self.end_time = "pending"
 
     def set_start_and_end_times(self, start_and_end_times):
         self.start_time = start_and_end_times['start']
@@ -48,6 +56,18 @@ class Event:
 
     def __str__(self):
         return f"Topic: {self.topic}, Duration: {self.duration}, Study Type: {self.study_type}"
+
+    # --- Data Validation ---
+
+    # TODO: this function is not implemented in code yet
+    def data_validation(self):
+        # NOTE: try-except-except blocks are use when you DONT want the program to crash. 
+        # In this case, I want to just raise exception
+        
+        time_difference = (self.end_time - self.start_time).total_seconds() / 60
+        if time_difference != self.duration:
+            raise StartEndDurationMismatchError
+
 
     def create_google_calendar_event(self):
 
@@ -93,18 +113,19 @@ class Event:
         add_event_to_google_calendar(google_event)
 
 class MemoryBlockEvent(Event):
+    
     def __init__(self, topic, duration, study_type, study_duration, recall_duration):
         super().__init__(topic, duration, study_type)
         self.study_type = 'memory block'
         self.study_event = Event(self.topic, study_duration, 'study')
         self.recall_event = Event(self.topic, recall_duration, 'recall')       
 
+
     def set_start_and_end_times(self, start_and_end_times):
         super().set_start_and_end_times(start_and_end_times)
         self.study_event.start_time = self.start_time
         self.study_event.end_time = self.study_event.start_time + datetime.timedelta(minutes = self.study_event.duration)
         
-        # TODO: could add logic to check that the start and end times align with durations etc. 
         self.recall_event.start_time = self.study_event.end_time
         self.recall_event.end_time = self.end_time
 
@@ -247,13 +268,13 @@ def get_user_input():
     
     return user_input_info
 
+@dataclass
 class TopicInfo:
-    def __init__(self, topic, study_type, proportion, time_remaining):
-        self.topic = topic
-        self.study_type = study_type
-        self.proportion = proportion
-        self.time_remaining = time_remaining
-        self.events = []
+    topic: str
+    study_type: str
+    proportion: float
+    time_remaining: int
+    events: list = field(default_factory=list) # No defualt mutable arguments allowed, use default_factory instead
 
     def __str__(self):
         event_list = "\n".join([str(event) for event in self.events])
@@ -489,10 +510,10 @@ if __name__ == "__main__":
 
     # ADDEDADDEDADDEDADDEDADDED for testing
     user_input_info = {
-        'total_time' : 180,   
-        'topics' : ['A', 'B', 'X'],
+        'total_time' : 120,   
+        'topics' : ['A', 'X', 'Y'],
         'proportions' : [.33, .33, .34],
-        'study_type_list' : ['memory', 'memory', 'practice'], 
+        'study_type_list' : ['memory', 'practice', 'practice'], 
     }
     # ADDEDADDEDADDEDADDEDADDED for testing
 

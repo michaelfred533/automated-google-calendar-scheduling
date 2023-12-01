@@ -42,4 +42,11 @@ class ProportionsDontAddToOneError(Exception):
     The proportions entered by the user do not add to 1.
     """
 
+# --- Event class data validation ---
+
+class StartEndDurationMismatchError(Exception):
+    """
+    The start and end times of the event are not consistent with the duration
+    """ 
+
     

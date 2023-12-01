@@ -20,7 +20,6 @@ SCOPES = ["https://www.googleapis.com/auth/calendar.readonly"]
 
 class Helpers:
       
-    #TODO: maybe delete this method. Or if keeping it, replace -07:00 with LA timezone via pytz 
     @staticmethod
     def create_sample_event(start_time, end_time):
         # format: 'T11:30:00-07:00'
@@ -44,35 +43,6 @@ class Helpers:
 #TODO: separate into separate classes
 class test_create(unittest.TestCase):
 
-    # def test_mix_lists(self):
-
-    #     # input:
-    #     events_1, events_2 = ['A', 'B'], ['W', 'X', 'Y', 'Z']
-        
-    #     # result:
-    #     result = create_schedule.mix_lists(events_1, events_2)
-
-    #     # expected:
-    #     expected = ['W', 'A', 'X', 'B', 'Y', 'Z']
-
-    #     # tests:
-    #     self.assertEqual(result, expected)
-    #     self.assertEqual(len(result), (len(events_1) + len(events_2)))
-    # def test_mix_lists2(self):
-
-    #     # input:
-    #     events_1, events_2 = ['A', 'B'], ['W', 'X', 'Y']
-        
-    #     # result:
-    #     result = create_schedule.mix_lists(events_1, events_2)
-
-    #     # expected:
-    #     expected = ['W', 'A', 'X', 'B', 'Y']
-
-    #     # tests:
-    #     self.assertEqual(result, expected)
-    #     self.assertEqual(len(result), (len(events_1) + len(events_2)))    
-   
 
     ## ------------------------End of test block---------------------
 
@@ -302,7 +272,6 @@ class test_create(unittest.TestCase):
         self.assertTrue(events_from_calendar[1]['end']['dateTime'][:-6] == input_event.recall_event.end_time)
 
 
-
     ## ------------------------End of test block---------------------
 
   
@@ -356,7 +325,8 @@ class test_create(unittest.TestCase):
         # tests: 
         # check that each attribute matches for each event in the schedule
         for event_expected, event_result in zip(expected, result):
-            Helpers.assertEqual_all_attriubutes(event_expected, event_result)
+            self.assertEqual(event_expected, event_result) # uses dataclass functionality to directly compare events
+            #Helpers.assertEqual_all_attriubutes(event_expected, event_result)
 
     def test_add_start_and_end_times_for_events2(self):
         # input:
@@ -384,15 +354,16 @@ class test_create(unittest.TestCase):
         # tests: 
         # check that each attribute matches for each event in the schedule
         for event_expected, event_result in zip(expected, result):
-           Helpers.assertEqual_all_attriubutes(event_expected, event_result)
+            self.assertEqual(event_expected, event_result)
+            #Helpers.assertEqual_all_attriubutes(event_expected, event_result)
 
     # 3 adds actual test event to the calendar
     def test_add_start_and_end_times_for_events3(self):
-         # add test events to google calendar:
-        date = str(datetime.date.today())
+         # add events that the function much schedule around to google calendar:
         event_to_add = create_schedule.Event('A', 60, 'practice')
-        event_to_add.start_time, event_to_add.end_time = date + 'T10:30:00', date + 'T11:00:00'
-        create_schedule.create_google_calendar_event(event_to_add)
+        event_to_add.start_time = create_schedule.helper_create_timezone_datetime_object('T09:00:00')
+        event_to_add.end_time = create_schedule.helper_create_timezone_datetime_object('T10:00:00') 
+        event_to_add.create_google_calendar_event()
        
         # input:
         new_events = [create_schedule.Event('A', 60, 'practice'), create_schedule.Event('B', 60, 'practice')]
@@ -411,7 +382,8 @@ class test_create(unittest.TestCase):
 
         # tests: 
         for event_expected, event_result in zip(expected, result):
-            Helpers.assertEqual_all_attriubutes(event_expected, event_result)
+            self.assertEqual(event_expected, event_result)
+            #Helpers.assertEqual_all_attriubutes(event_expected, event_result)
 
     #----------------------End of test block---------------------
     
