@@ -5,137 +5,26 @@
 from __future__ import print_function # must be at beginning of file
 
 # 3rd party imports
-import pytz
 
 # python built-in imports
 import copy
-from dataclasses import dataclass, field
 import datetime
-from datetime import time
 from typing import List, Dict
 
 # local imports
-import get_calendar_data
+from create_schedule_package.event import Event, MemoryBlockEvent
+from create_schedule_package import helper_functions
+from create_schedule_package.topic_info import TopicInfo
 from exceptions import * # imports all exception classes into current namespace, such that you don't have to call exceptions.MyError each time. This is usually a bad idea though, as names can overlap quickly in large projects
+import get_calendar_data
 
 
-#SCOPES = ["https://www.googleapis.com/auth/calendar.readonly"]
-SCOPES = ["https://www.googleapis.com/auth/calendar"]
+
+
 
 # ----------------------------------------------------------------------------------------------------------------
 
-def helper_create_timezone_datetime_object(time_ISO_string: str) -> datetime.datetime:
-    """
-    converts a time in string format into a datetime object w/ timezone to be used to compare with other datetime objects
-    """
-    
-    date = datetime.datetime.today().date()
-    datetime_string = str(date) + time_ISO_string
-    naive_datetime_object = datetime.datetime.strptime(datetime_string, '%Y-%m-%dT%H:%M:%S')
-    timezone_datetime_object = pytz.timezone('America/Los_Angeles').localize(naive_datetime_object)
 
-    return timezone_datetime_object
-
-@dataclass
-class Event:
-
-    topic: str
-    duration: int
-    study_type: str
-
-    # def __init__(self, topic, duration, study_type):
-    #     self.topic = topic
-    #     self.duration = duration
-    #     self.study_type = study_type
-    #     self.start_time = self.end_time = "pending"
-
-    def set_start_and_end_times(self, start_and_end_times: dict):
-        self.start_time = start_and_end_times['start']
-        self.end_time = start_and_end_times['end']
-
-    def __str__(self):
-        return f"Topic: {self.topic}, Duration: {self.duration}, Study Type: {self.study_type}"
-
-    def create_google_calendar_event(self):
-
-        def convert_times_to_google_format():
-            '''
-            converts event.start_time and event.end_time from dateTime object of format (2023-11-20 T09:00:00-08:00)
-            into a string of format (2023-11-20 T09:00:00) which is the format used to create a google calendar event
-            '''
-            def add_T_to_time_string(time_string: str):
-                date = time_string.split(' ')[0]
-                time = time_string.split(' ')[1]
-                time_string = date + 'T' + time
-                
-                return time_string
-            
-            google_format_start_time = str(self.start_time)[:-6]
-            google_format_end_time = str(self.end_time)[:-6]
-
-            google_format_start_time = add_T_to_time_string(google_format_start_time)
-            google_format_end_time = add_T_to_time_string(google_format_end_time) 
-
-            self.start_time = google_format_start_time
-            self.end_time = google_format_end_time
-
-        def add_event_to_google_calendar(event: Event):
-            service = get_calendar_data.access_calendar(SCOPES)
-            event = service.events().insert(calendarId='primary', body=event).execute()
-
-
-        convert_times_to_google_format()
-
-        google_event = {
-            'summary': self.topic + ' - ' + self.study_type,
-            'description': 'NA',
-            'start': {'dateTime': self.start_time, 'timeZone': "America/Los_Angeles"},
-            'end': {'dateTime': self.end_time, 'timeZone': "America/Los_Angeles"},
-            'reminders': {
-                'useDefault': False,
-                'overrides': [],
-            },
-        }
-
-        add_event_to_google_calendar(google_event)
-
-
-    # --- Data Validation ---
-    # TODO: this function is not implemented in code yet
-    def data_validation(self):
-        # NOTE: try-except-except blocks are use when you DONT want the program to crash. 
-        # In this case, I want to just raise exception
-        
-        time_difference = (self.end_time - self.start_time).total_seconds() / 60
-        if time_difference != self.duration:
-            raise StartEndDurationMismatchError
-
-
-
-class MemoryBlockEvent(Event):
-    
-    def __init__(self, topic, duration, study_type, study_duration, recall_duration):
-        super().__init__(topic, duration, study_type)
-        self.study_type = 'memory block'
-        self.study_event = Event(self.topic, study_duration, 'study')
-        self.recall_event = Event(self.topic, recall_duration, 'recall')       
-
-
-    def set_start_and_end_times(self, start_and_end_times: dict):
-        super().set_start_and_end_times(start_and_end_times)
-        self.study_event.start_time = self.start_time
-        self.study_event.end_time = self.study_event.start_time + datetime.timedelta(minutes = self.study_event.duration)
-        
-        self.recall_event.start_time = self.study_event.end_time
-        self.recall_event.end_time = self.end_time
-
-
-    def __str__(self):
-        return f"MemoryBlockEvent: \n\tTopic: {self.topic}, Duration: {self.duration} \n\tStudy Event: ({self.study_event}) \n\tRecall Event: ({self.recall_event})"
-        
-    def create_google_calendar_event(self):
-        self.study_event.create_google_calendar_event()
-        self.recall_event.create_google_calendar_event()
 
 def get_user_input() -> dict:
     """
@@ -267,19 +156,6 @@ def get_user_input() -> dict:
     user_input_info['proportions'] = UserInputValidation.get_proportions(user_input_info['topics'])
     
     return user_input_info
-
-@dataclass
-class TopicInfo:
-    topic: str
-    study_type: str
-    proportion: float
-    time_remaining: int
-    events: list = field(default_factory=list) # No defualt mutable arguments allowed, use default_factory instead
-
-    def __str__(self):
-        event_list = "\n".join([str(event) for event in self.events])
-        return f"Topic: {self.topic}, Study Type: {self.study_type}, Proportion: {self.proportion}, Time Remaining: {self.time_remaining}\nEvents:\n\t{event_list}"
-
 
 def initialize_topic_info(user_input_info: dict) -> List[TopicInfo]:
     def calculate_times_for_topics(user_input_info):
@@ -455,7 +331,7 @@ def get_todays_calendar() -> List[dict]:
     start_date = str(datetime.date.today())
     end_date = str((datetime.date.today() + datetime.timedelta(days = 1)))
 
-    service = get_calendar_data.access_calendar(SCOPES)
+    service = get_calendar_data.access_calendar()
     events = get_calendar_data.get_events(service, start_date, end_date)
     print('from todays calendar: ', events, '\n')
 
@@ -465,8 +341,8 @@ def add_start_and_end_times_for_events(new_events_list: List[Event]) -> None:
    
     def add_start_end_duration_to_existing_events(existing_events):
         for event in existing_events:
-            event['start_time'] = pytz.timezone('America/Los_Angeles').localize(datetime.datetime.strptime(event['start']['dateTime'][:-6], '%Y-%m-%dT%H:%M:%S'))
-            event['end_time'] = pytz.timezone('America/Los_Angeles').localize(datetime.datetime.strptime(event['end']['dateTime'][:-6], '%Y-%m-%dT%H:%M:%S'))
+            event['start_time'] = helper_functions.create_timezone_datetime_object('T' + str(event['start']['dateTime'][11:19]))
+            event['end_time'] = helper_functions.create_timezone_datetime_object('T' + str(event['end']['dateTime'][11:19]))
             event['duration'] = (event['end_time'] - event['start_time']).total_seconds() / 60
     
     def find_non_overlaping_time(existing_events, proposed_new_event_time):
@@ -484,7 +360,7 @@ def add_start_and_end_times_for_events(new_events_list: List[Event]) -> None:
         return proposed_new_event_time
 
     proposed_new_event_time = {
-        'start': helper_create_timezone_datetime_object('T09:00:00'),
+        'start': helper_functions.create_timezone_datetime_object('T09:00:00'),
         'end': None
     }
     

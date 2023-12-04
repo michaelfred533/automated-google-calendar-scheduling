@@ -10,16 +10,16 @@ from unittest import mock
 
 # local imports
 import create_schedule
+from create_schedule_package import helper_functions
+from create_schedule_package.event import Event, MemoryBlockEvent
+from create_schedule_package.topic_info import TopicInfo 
+
 import get_calendar_data
 
 
-
-SCOPES = ["https://www.googleapis.com/auth/calendar.readonly"]
-
-service = get_calendar_data.access_calendar(SCOPES)
+service = get_calendar_data.access_calendar()
 
 #TODO: refactor code into helper functions 
-
 class Helpers:
       
     @staticmethod
@@ -136,19 +136,19 @@ class test_create(unittest.TestCase):
     def test_add_events_to_google_calendar_unit(self):
 
         # input:
-        standard_event1 = create_schedule.Event('test - event 1', 60, 'study type')
-        standard_event1.start_time = create_schedule.helper_create_timezone_datetime_object('T09:00:00')
-        standard_event1.end_time = create_schedule.helper_create_timezone_datetime_object('T10:00:00')
+        standard_event1 = Event('test - event 1', 60, 'study type')
+        standard_event1.start_time = helper_functions.create_timezone_datetime_object('T09:00:00')
+        standard_event1.end_time = helper_functions.create_timezone_datetime_object('T10:00:00')
 
-        standard_event2 = create_schedule.Event('test - event 2', 60, 'study type')
-        standard_event2.start_time = create_schedule.helper_create_timezone_datetime_object('T11:00:00')
-        standard_event2.end_time = create_schedule.helper_create_timezone_datetime_object('T12:00:00')
+        standard_event2 = Event('test - event 2', 60, 'study type')
+        standard_event2.start_time = helper_functions.create_timezone_datetime_object('T11:00:00')
+        standard_event2.end_time = helper_functions.create_timezone_datetime_object('T12:00:00')
         
-        memory_block_event1 = create_schedule.MemoryBlockEvent('test - MemoryBlock event', 60, '', study_duration=45, recall_duration=15)
+        memory_block_event1 = MemoryBlockEvent('test - MemoryBlock event', 60, '', study_duration=45, recall_duration=15)
 
         memory_block_start_and_end_times = {
-            'start' : create_schedule.helper_create_timezone_datetime_object('T14:00:00'),
-            'end' : create_schedule.helper_create_timezone_datetime_object('T15:00:00'),
+            'start' : helper_functions.create_timezone_datetime_object('T14:00:00'),
+            'end' : helper_functions.create_timezone_datetime_object('T15:00:00'),
         }
         memory_block_event1.set_start_and_end_times(memory_block_start_and_end_times)
 
@@ -163,10 +163,10 @@ class test_create(unittest.TestCase):
         # expected: 
         
         # regular event 1
-        expected_start_time1 = str(create_schedule.helper_create_timezone_datetime_object('T09:00:00'))
+        expected_start_time1 = str(helper_functions.create_timezone_datetime_object('T09:00:00'))
         expected_start_time1 = expected_start_time1.split(' ')[0] + 'T' + expected_start_time1.split(' ')[1]
 
-        expected_end_time1 = str(create_schedule.helper_create_timezone_datetime_object('T10:00:00'))
+        expected_end_time1 = str(helper_functions.create_timezone_datetime_object('T10:00:00'))
         expected_end_time1 = expected_end_time1.split(' ')[0] + 'T' + expected_end_time1.split(' ')[1]
 
         expected_event1 = {
@@ -175,10 +175,10 @@ class test_create(unittest.TestCase):
         }
 
         # regular event 2
-        expected_start_time2 = str(create_schedule.helper_create_timezone_datetime_object('T11:00:00'))
+        expected_start_time2 = str(helper_functions.create_timezone_datetime_object('T11:00:00'))
         expected_start_time2 = expected_start_time2.split(' ')[0] + 'T' + expected_start_time2.split(' ')[1]
 
-        expected_end_time2 = str(create_schedule.helper_create_timezone_datetime_object('T12:00:00'))
+        expected_end_time2 = str(helper_functions.create_timezone_datetime_object('T12:00:00'))
         expected_end_time2 = expected_end_time2.split(' ')[0] + 'T' + expected_end_time2.split(' ')[1]
 
         expected_event2 = {
@@ -187,10 +187,10 @@ class test_create(unittest.TestCase):
         }
 
         # memory block study event
-        expected_start_time_study = str(create_schedule.helper_create_timezone_datetime_object('T14:00:00'))
+        expected_start_time_study = str(helper_functions.create_timezone_datetime_object('T14:00:00'))
         expected_start_time_study = expected_start_time_study.split(' ')[0] + 'T' + expected_start_time_study.split(' ')[1]
 
-        expected_end_time_study = str(create_schedule.helper_create_timezone_datetime_object('T14:45:00'))
+        expected_end_time_study = str(helper_functions.create_timezone_datetime_object('T14:45:00'))
         expected_end_time_study = expected_end_time_study.split(' ')[0] + 'T' + expected_end_time_study.split(' ')[1]
 
         expected_event_study = {
@@ -199,10 +199,10 @@ class test_create(unittest.TestCase):
         }
 
         # memory block recall event
-        expected_start_time_recall = str(create_schedule.helper_create_timezone_datetime_object('T14:45:00'))
+        expected_start_time_recall = str(helper_functions.create_timezone_datetime_object('T14:45:00'))
         expected_start_time_recall = expected_start_time_recall.split(' ')[0] + 'T' + expected_start_time_recall.split(' ')[1]
 
-        expected_end_time_recall = str(create_schedule.helper_create_timezone_datetime_object('T15:00:00'))
+        expected_end_time_recall = str(helper_functions.create_timezone_datetime_object('T15:00:00'))
         expected_end_time_recall = expected_end_time_recall.split(' ')[0] + 'T' + expected_end_time_recall.split(' ')[1]
 
         expected_event_recall = {
@@ -228,14 +228,14 @@ class test_create(unittest.TestCase):
     def test_add_events_to_google_calendar_integrated(self):
 
         # input:
-        standard_event1 = create_schedule.Event('test - event 1', 60, 'study type')
-        standard_event2 = create_schedule.Event('test - event 2', 60, 'study type')
-        memory_block_event1 = create_schedule.MemoryBlockEvent('test - MemoryBlock event', 60, '', study_duration=45, recall_duration=15)
+        standard_event1 = Event('test - event 1', 60, 'study type')
+        standard_event2 = Event('test - event 2', 60, 'study type')
+        memory_block_event1 = MemoryBlockEvent('test - MemoryBlock event', 60, '', study_duration=45, recall_duration=15)
 
 
-        start1 = str(create_schedule.helper_create_timezone_datetime_object('T10:00:00'))
+        start1 = str(helper_functions.create_timezone_datetime_object('T10:00:00'))
         start1 = start1.split(' ')[0] + 'T' + start1.split(' ')[1]
-        end1 = str(create_schedule.helper_create_timezone_datetime_object('T11:30:00'))
+        end1 = str(helper_functions.create_timezone_datetime_object('T11:30:00'))
         end1 = end1.split(' ')[0] + 'T' + end1.split(' ')[1]
         
 
@@ -256,10 +256,10 @@ class test_create(unittest.TestCase):
         # expected: 
         
         # regular event 1
-        expected_start_time1 = str(create_schedule.helper_create_timezone_datetime_object('T09:00:00'))
+        expected_start_time1 = str(helper_functions.create_timezone_datetime_object('T09:00:00'))
         expected_start_time1 = expected_start_time1.split(' ')[0] + 'T' + expected_start_time1.split(' ')[1]
 
-        expected_end_time1 = str(create_schedule.helper_create_timezone_datetime_object('T10:00:00'))
+        expected_end_time1 = str(helper_functions.create_timezone_datetime_object('T10:00:00'))
         expected_end_time1 = expected_end_time1.split(' ')[0] + 'T' + expected_end_time1.split(' ')[1]
 
         expected_event1 = {
@@ -268,10 +268,10 @@ class test_create(unittest.TestCase):
         }
 
         # regular event 2
-        expected_start_time2 = str(create_schedule.helper_create_timezone_datetime_object('T11:30:00'))
+        expected_start_time2 = str(helper_functions.create_timezone_datetime_object('T11:30:00'))
         expected_start_time2 = expected_start_time2.split(' ')[0] + 'T' + expected_start_time2.split(' ')[1]
 
-        expected_end_time2 = str(create_schedule.helper_create_timezone_datetime_object('T12:30:00'))
+        expected_end_time2 = str(helper_functions.create_timezone_datetime_object('T12:30:00'))
         expected_end_time2 = expected_end_time2.split(' ')[0] + 'T' + expected_end_time2.split(' ')[1]
 
         expected_event2 = {
@@ -280,10 +280,10 @@ class test_create(unittest.TestCase):
         }
 
         # memory block study event
-        expected_start_time_study = str(create_schedule.helper_create_timezone_datetime_object('T12:30:00'))
+        expected_start_time_study = str(helper_functions.create_timezone_datetime_object('T12:30:00'))
         expected_start_time_study = expected_start_time_study.split(' ')[0] + 'T' + expected_start_time_study.split(' ')[1]
 
-        expected_end_time_study = str(create_schedule.helper_create_timezone_datetime_object('T13:15:00'))
+        expected_end_time_study = str(helper_functions.create_timezone_datetime_object('T13:15:00'))
         expected_end_time_study = expected_end_time_study.split(' ')[0] + 'T' + expected_end_time_study.split(' ')[1]
 
         expected_event_study = {
@@ -292,10 +292,10 @@ class test_create(unittest.TestCase):
         }
 
         # memory block recall event
-        expected_start_time_recall = str(create_schedule.helper_create_timezone_datetime_object('T13:15:00'))
+        expected_start_time_recall = str(helper_functions.create_timezone_datetime_object('T13:15:00'))
         expected_start_time_recall = expected_start_time_recall.split(' ')[0] + 'T' + expected_start_time_recall.split(' ')[1]
 
-        expected_end_time_recall = str(create_schedule.helper_create_timezone_datetime_object('T13:30:00'))
+        expected_end_time_recall = str(helper_functions.create_timezone_datetime_object('T13:30:00'))
         expected_end_time_recall = expected_end_time_recall.split(' ')[0] + 'T' + expected_end_time_recall.split(' ')[1]
 
         expected_event_recall = {
@@ -321,11 +321,11 @@ class test_create(unittest.TestCase):
     def test_create_google_calendar_event_parent(self):
         
         #input:         
-        input_event = create_schedule.Event('test - single event', 60, 'study type')
+        input_event = Event('test - single event', 60, 'study type')
 
         date = str(datetime.date.today())
-        input_event.start_time = create_schedule.helper_create_timezone_datetime_object('T09:00:00')
-        input_event.end_time = create_schedule.helper_create_timezone_datetime_object('T10:00:00')
+        input_event.start_time = helper_functions.create_timezone_datetime_object('T09:00:00')
+        input_event.end_time = helper_functions.create_timezone_datetime_object('T10:00:00')
 
         input_event.create_google_calendar_event()
         
@@ -343,11 +343,11 @@ class test_create(unittest.TestCase):
     def test_create_google_calendar_event_child_MemoryBlock(self):
         
         #input:         
-        input_event = create_schedule.MemoryBlockEvent('test - MemoryBlock event', 60, '', study_duration=45, recall_duration=15)
+        input_event = MemoryBlockEvent('test - MemoryBlock event', 60, '', study_duration=45, recall_duration=15)
 
         input_start_and_end_times = {
-            'start' : create_schedule.helper_create_timezone_datetime_object('T13:00:00'),
-            'end' : create_schedule.helper_create_timezone_datetime_object('T14:00:00'),
+            'start' : helper_functions.create_timezone_datetime_object('T13:00:00'),
+            'end' : helper_functions.create_timezone_datetime_object('T14:00:00'),
         }
         input_event.set_start_and_end_times(input_start_and_end_times)
 
@@ -377,14 +377,14 @@ class test_create(unittest.TestCase):
     def test_add_start_and_end_times_for_events1(self):
         # input:
 
-        start1 = str(create_schedule.helper_create_timezone_datetime_object('T10:00:00'))
+        start1 = str(helper_functions.create_timezone_datetime_object('T10:00:00'))
         start1 = start1.split(' ')[0] + 'T' + start1.split(' ')[1]
-        end1 = str(create_schedule.helper_create_timezone_datetime_object('T11:30:00'))
+        end1 = str(helper_functions.create_timezone_datetime_object('T11:30:00'))
         end1 = end1.split(' ')[0] + 'T' + end1.split(' ')[1]
         
-        start2 = str(create_schedule.helper_create_timezone_datetime_object('T11:30:00'))
+        start2 = str(helper_functions.create_timezone_datetime_object('T11:30:00'))
         start2 = start2.split(' ')[0] + 'T' + start2.split(' ')[1]
-        end2 = str(create_schedule.helper_create_timezone_datetime_object('T12:30:00'))
+        end2 = str(helper_functions.create_timezone_datetime_object('T12:30:00'))
         end2 = end2.split(' ')[0] + 'T' + end2.split(' ')[1]
         
 
@@ -393,17 +393,17 @@ class test_create(unittest.TestCase):
             {'start' : {'dateTime' : start2}, 'end' : {'dateTime' : end2}},
         ]
         
-        result = [create_schedule.Event('test - A', 60, 'practice'), create_schedule.Event('test - B', 60, 'practice')]
+        result = [Event('test - A', 60, 'practice'), Event('test - B', 60, 'practice')]
 
         # output:
         with mock.patch('create_schedule.get_todays_calendar', return_value = existing_events):
             create_schedule.add_start_and_end_times_for_events(result)
         print('mock shedule: ', result)
         # expected: 
-        event1 = create_schedule.Event('test - A', 60, 'practice')
-        event2 = create_schedule.Event('test - B', 60, 'practice')
-        event1.start_time, event1.end_time = create_schedule.helper_create_timezone_datetime_object('T09:00:00'), create_schedule.helper_create_timezone_datetime_object('T10:00:00') 
-        event2.start_time, event2.end_time = create_schedule.helper_create_timezone_datetime_object('T12:30:00'), create_schedule.helper_create_timezone_datetime_object('T13:30:00') 
+        event1 = Event('test - A', 60, 'practice')
+        event2 = Event('test - B', 60, 'practice')
+        event1.start_time, event1.end_time = helper_functions.create_timezone_datetime_object('T09:00:00'), helper_functions.create_timezone_datetime_object('T10:00:00') 
+        event2.start_time, event2.end_time = helper_functions.create_timezone_datetime_object('T12:30:00'), helper_functions.create_timezone_datetime_object('T13:30:00') 
 
         expected = [event1, event2]
 
@@ -420,7 +420,7 @@ class test_create(unittest.TestCase):
             {'start' : {'dateTime' : date + 'T09:00:00-07:00'}, 'end' : {'dateTime' : date + 'T10:30:00-07:00'}},
             {'start' : {'dateTime' : date + 'T11:30:00-07:00'}, 'end' : {'dateTime' : date + 'T12:00:00-07:00'}},
             ]
-        result = [create_schedule.Event('test - A', 60, 'practice'), create_schedule.Event('test - B', 60, 'practice')]
+        result = [Event('test - A', 60, 'practice'), Event('test - B', 60, 'practice')]
 
         # output:
         with mock.patch('create_schedule.get_todays_calendar', return_value = existing_events):
@@ -428,10 +428,10 @@ class test_create(unittest.TestCase):
         print('mock shedule: ', result)
 
         # expected: 
-        event1 = create_schedule.Event('test - A', 60, 'practice')
-        event2 = create_schedule.Event('test - B', 60, 'practice')
-        event1.start_time, event1.end_time = create_schedule.helper_create_timezone_datetime_object('T10:30:00'), create_schedule.helper_create_timezone_datetime_object('T11:30:00') 
-        event2.start_time, event2.end_time = create_schedule.helper_create_timezone_datetime_object('T12:00:00'), create_schedule.helper_create_timezone_datetime_object('T13:00:00') 
+        event1 = Event('test - A', 60, 'practice')
+        event2 = Event('test - B', 60, 'practice')
+        event1.start_time, event1.end_time = helper_functions.create_timezone_datetime_object('T10:30:00'), helper_functions.create_timezone_datetime_object('T11:30:00') 
+        event2.start_time, event2.end_time = helper_functions.create_timezone_datetime_object('T12:00:00'), helper_functions.create_timezone_datetime_object('T13:00:00') 
 
         expected = [event1, event2]
         
@@ -443,13 +443,13 @@ class test_create(unittest.TestCase):
     # 3 adds actual test event to the calendar
     def test_add_start_and_end_times_for_events3(self):
          # add events that the function must schedule around to google calendar:
-        event_to_add = create_schedule.Event('test - A', 60, 'practice')
-        event_to_add.start_time = create_schedule.helper_create_timezone_datetime_object('T09:00:00')
-        event_to_add.end_time = create_schedule.helper_create_timezone_datetime_object('T10:00:00') 
+        event_to_add = Event('test - A', 60, 'practice')
+        event_to_add.start_time = helper_functions.create_timezone_datetime_object('T09:00:00')
+        event_to_add.end_time = helper_functions.create_timezone_datetime_object('T10:00:00') 
         event_to_add.create_google_calendar_event()
        
         # input:
-        result = [create_schedule.Event('test - A', 60, 'practice'), create_schedule.Event('test - B', 60, 'practice')]
+        result = [Event('test - A', 60, 'practice'), Event('test - B', 60, 'practice')]
 
         # output:
         create_schedule.add_start_and_end_times_for_events(result)
@@ -458,11 +458,11 @@ class test_create(unittest.TestCase):
         Helpers.delete_created_test_events()
 
         # expected: 
-        event1 = create_schedule.Event('test - A', 60, 'practice')
-        event2 = create_schedule.Event('test - B', 60, 'practice')
+        event1 = Event('test - A', 60, 'practice')
+        event2 = Event('test - B', 60, 'practice')
         
-        event1.start_time, event1.end_time = create_schedule.helper_create_timezone_datetime_object('T09:00:00'), create_schedule.helper_create_timezone_datetime_object('T10:00:00') 
-        event2.start_time, event2.end_time = create_schedule.helper_create_timezone_datetime_object('T11:00:00'), create_schedule.helper_create_timezone_datetime_object('T12:00:00') 
+        event1.start_time, event1.end_time = helper_functions.create_timezone_datetime_object('T09:00:00'), helper_functions.create_timezone_datetime_object('T10:00:00') 
+        event2.start_time, event2.end_time = helper_functions.create_timezone_datetime_object('T11:00:00'), helper_functions.create_timezone_datetime_object('T12:00:00') 
 
         expected = [event1, event2]
 
@@ -566,9 +566,9 @@ class test_create(unittest.TestCase):
     def test_interleave_by_study_type(self):
             # input:
             lens = [1, 1, 1]
-            eventA = create_schedule.Event('A', 60, 'type 1')
-            eventB = create_schedule.Event('B', 60, 'type 1')
-            eventX = create_schedule.Event('X', 60, 'type 2')
+            eventA = Event('A', 60, 'type 1')
+            eventB = Event('B', 60, 'type 1')
+            eventX = Event('X', 60, 'type 2')
 
             events_1 = [eventA] * lens[0]
             events_2 = [eventB] * lens[1]
@@ -605,7 +605,7 @@ class test_create(unittest.TestCase):
 
     def test_build_events_for_memory_topic1(self):
         # Create a mock TopicInfo instance for testing
-        topic_info = create_schedule.TopicInfo("Test Topic", "study", 1, 60)
+        topic_info = TopicInfo("Test Topic", "study", 1, 60)
 
         # Call the function to be tested
         create_schedule.build_events_for_memory_topic(topic_info)
@@ -616,13 +616,13 @@ class test_create(unittest.TestCase):
 
         # Assert that the added events are MemoryBlockEvent instances
         for event in topic_info.events:
-            self.assertTrue(isinstance(event, create_schedule.MemoryBlockEvent))
+            self.assertTrue(isinstance(event, MemoryBlockEvent))
 
     def test_build_events_for_memory_topic2(self):
         # Create a mock TopicInfo instance for testing
         proportion = 1
         time_remaining = 90
-        topic_info = create_schedule.TopicInfo("Test Topic", "study", proportion, time_remaining)
+        topic_info = TopicInfo("Test Topic", "study", proportion, time_remaining)
 
         # Call the function to be tested
         create_schedule.build_events_for_memory_topic(topic_info)
@@ -632,7 +632,7 @@ class test_create(unittest.TestCase):
 
         # Assert that the added events are MemoryBlockEvent instances
         for event in topic_info.events:
-            self.assertTrue(isinstance(event, create_schedule.MemoryBlockEvent))
+            self.assertTrue(isinstance(event, MemoryBlockEvent))
 
     ## ------------------------End of test block---------------------
     
@@ -640,7 +640,7 @@ class test_create(unittest.TestCase):
         # Create a mock TopicInfo instance for testing
         proportion = 1
         time_remaining = 90
-        topic_info = create_schedule.TopicInfo("Test Topic", "practice", proportion, time_remaining)
+        topic_info = TopicInfo("Test Topic", "practice", proportion, time_remaining)
 
         # Call the function to be tested
         create_schedule.build_events_for_memory_topic(topic_info)

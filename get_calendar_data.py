@@ -21,11 +21,10 @@ import os.path
 SCOPES = ["https://www.googleapis.com/auth/calendar"]
 
 
-def access_calendar(SCOPES):
+def access_calendar():
     """
     Calls the Google Calendar API and generates/updates credentials.json if needed
 
-    Inputs: SCOPES
     Outputs: google calendar object
     """
 
