@@ -49,4 +49,9 @@ class StartEndDurationMismatchError(Exception):
     The start and end times of the event are not consistent with the duration
     """ 
 
-    
+# --- interleave() ---
+
+class NoEventsError(Exception):
+    """
+    The list of lists passed into interleave() Is empty. It needs at least 2 to interleave them 
+    """

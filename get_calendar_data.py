@@ -1,17 +1,20 @@
-from __future__ import print_function
-import datetime
-import os.path
-import pandas as pd
-from difflib import SequenceMatcher
+"""
+"""
 
+from __future__ import print_function # must be at beginning of file
+
+# 3rd party imports
 from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
-from apscheduler.schedulers.background import BackgroundScheduler
 
+# built in imports
+import datetime
+from difflib import SequenceMatcher
+import pandas as pd
+import os.path
 
-scheduler = BackgroundScheduler()
 
 # If modifying these scopes, delete the file token.json.
 # SCOPES = ["https://www.googleapis.com/auth/calendar.readonly"]

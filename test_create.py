@@ -1,48 +1,132 @@
 """
 test script for create_schedule.py
 """
-import datetime
-from datetime import time
-import pytz
+# 3rd party imports
 
+# python built in imports
+import datetime
 import unittest
 from unittest import mock
 
+# local imports
 import create_schedule
 import get_calendar_data
 
+
+
 SCOPES = ["https://www.googleapis.com/auth/calendar.readonly"]
 
+service = get_calendar_data.access_calendar(SCOPES)
 
 #TODO: refactor code into helper functions 
-#TODO: create helper function that deletes all the events just created
-
 
 class Helpers:
       
     @staticmethod
-    def create_sample_event(start_time, end_time):
+    def create_sample_existing_event(start_time, end_time):
         # format: 'T11:30:00-07:00'
         date = str(datetime.date.today())
         existing_event = {'start' : {'dateTime' : date + start_time}, 'end' : {'dateTime' : date + end_time}}
         return existing_event
 
     @staticmethod
-    def assertEqual_all_attriubutes(event_expected, event_result):
-        
-        attributes_expected = [attr for attr in dir(event_expected) if not callable(getattr(event_expected, attr)) and not attr.startswith("__")]
-        attributes_result = [attr for attr in dir(event_result) if not callable(getattr(event_result, attr))and not attr.startswith("__")]
-        for attr_name in attributes_expected:
-            attr_expected = getattr(event_expected, attr_name)
-            attr_result = getattr(event_result, attr_name)
-            print('attr_expected', attr_expected)
-            print('attr_result', attr_result)
-            assert attr_expected == attr_result, f"attributes do not match. Expected: {attr_expected}, Result: {attr_result}"
+    def get_created_test_events_from_todays_calendar():
+        def select_only_test_events(all_events):
+                created_events = []
+                for event in all_events:
+                    if 'test - ' in event['summary']:
+                        created_events.append(event)
+                
+                return created_events
 
+        calendar_events = create_schedule.get_todays_calendar()
+        created_events = select_only_test_events(calendar_events)
+
+        return created_events
+
+    @staticmethod
+    def delete_created_test_events():
+         
+        def delete_event(event):
+            service.events().delete(calendarId = 'primary', eventId=event['id']).execute()
+            
+        calendar_events = create_schedule.get_todays_calendar()
+
+        for event in calendar_events:
+            if 'test - ' in event['summary']:
+                delete_event(event) 
 
 #TODO: separate into separate classes
 class test_create(unittest.TestCase):
 
+    ## ------------------------End of test block---------------------
+
+    def test_end_to_end1(self):
+        """
+        Tests the entire program for the case when a user enters only 1 topic type 
+        """
+
+        user_input_info = {
+            'total_time' : 120,   
+            'topics' : ['test - A'],
+            'proportions' : [1],
+            'study_type_list' : ['practice'], 
+        }
+
+        create_schedule.run_program(user_input_info)
+
+        # tests: verify that the events were created successfully
+        created_events = Helpers.get_created_test_events_from_todays_calendar()
+        
+        # delete test events that were just created
+        Helpers.delete_created_test_events()
+
+        expected_events = [
+            {'summary': 'test - A - practice', 'start': {'dateTime' : '2023-12-02T09:00:00-08:00'}, 'end': {'dateTime' : '2023-12-02T10:30:00-08:00'}},
+            {'summary': 'test - A - practice', 'start': {'dateTime' : '2023-12-02T10:30:00-08:00'}, 'end': {'dateTime' : '2023-12-02T11:00:00-08:00'}},
+        ]
+        
+        for created_event, expected_event in zip(created_events, expected_events):
+            self.assertEqual(created_event['summary'], expected_event['summary'])
+            self.assertEqual(created_event['start']['dateTime'][11:19], expected_event['start']['dateTime'][11:19])
+            self.assertEqual(created_event['end']['dateTime'][11:19], expected_event['end']['dateTime'][11:19])
+
+        
+    def test_end_to_end2(self):
+        """
+        Tests the entire program for the case when a user enters 2 or more topic types
+        """    
+
+
+        user_input_info = {
+            'total_time' : 120,   
+            'topics' : ['test - A', 'test - X', 'test - Y'],
+            'proportions' : [.33, .33, .34],
+            'study_type_list' : ['memory', 'practice', 'practice'], 
+        }
+
+        create_schedule.run_program(user_input_info)
+
+
+        # tests: verify that the events were created successfully
+        created_events = Helpers.get_created_test_events_from_todays_calendar()
+
+        # delete test events that were just created
+        Helpers.delete_created_test_events()
+
+        expected_events = [
+            {'summary': 'test - Y - practice', 'start': {'dateTime' : '2023-12-02T09:00:00-08:00'}, 'end': {'dateTime' : '2023-12-02T09:45:00-08:00'}},
+            {'summary': 'test - A - study', 'start': {'dateTime' : '2023-12-02T09:45:00-08:00'}, 'end': {'dateTime' : '2023-12-02T10:15:00-08:00'}},
+            {'summary': 'test - A - recall', 'start': {'dateTime' : '2023-12-02T10:15:00-08:00'}, 'end': {'dateTime' : '2023-12-02T10:30:00-08:00'}},
+            {'summary': 'test - X - practice', 'start': {'dateTime' : '2023-12-02T10:30:00-08:00'}, 'end': {'dateTime' : '2023-12-02T11:15:00-08:00'}},
+        ]
+
+        for created_event, expected_event in zip(created_events, expected_events):
+            self.assertEqual(created_event['summary'], expected_event['summary'])
+            self.assertEqual(created_event['start']['dateTime'][11:19], expected_event['start']['dateTime'][11:19])
+            self.assertEqual(created_event['end']['dateTime'][11:19], expected_event['end']['dateTime'][11:19])
+    
+        
 
     ## ------------------------End of test block---------------------
 
@@ -52,15 +136,15 @@ class test_create(unittest.TestCase):
     def test_add_events_to_google_calendar_unit(self):
 
         # input:
-        standard_event1 = create_schedule.Event('test event 1', 60, 'study type')
+        standard_event1 = create_schedule.Event('test - event 1', 60, 'study type')
         standard_event1.start_time = create_schedule.helper_create_timezone_datetime_object('T09:00:00')
         standard_event1.end_time = create_schedule.helper_create_timezone_datetime_object('T10:00:00')
 
-        standard_event2 = create_schedule.Event('test event 2', 60, 'study type')
+        standard_event2 = create_schedule.Event('test - event 2', 60, 'study type')
         standard_event2.start_time = create_schedule.helper_create_timezone_datetime_object('T11:00:00')
         standard_event2.end_time = create_schedule.helper_create_timezone_datetime_object('T12:00:00')
         
-        memory_block_event1 = create_schedule.MemoryBlockEvent('MemoryBlock test event', 60, '', study_duration=45, recall_duration=15)
+        memory_block_event1 = create_schedule.MemoryBlockEvent('test - MemoryBlock event', 60, '', study_duration=45, recall_duration=15)
 
         memory_block_start_and_end_times = {
             'start' : create_schedule.helper_create_timezone_datetime_object('T14:00:00'),
@@ -74,8 +158,7 @@ class test_create(unittest.TestCase):
 
 
         # output:
-        result = create_schedule.add_events_to_google_calendar(input_events)
-
+        create_schedule.add_events_to_google_calendar(input_events)
 
         # expected: 
         
@@ -129,7 +212,11 @@ class test_create(unittest.TestCase):
 
         expected_events = [expected_event1, expected_event2, expected_event_study, expected_event_recall]
 
-        created_events = create_schedule.get_todays_calendar()
+        # verify that events were created
+        created_events = Helpers.get_created_test_events_from_todays_calendar()
+
+        # cleanup events that were created during the test
+        Helpers.delete_created_test_events()
 
         # tests:
         for created_event, expected_event in zip(created_events, expected_events):
@@ -141,9 +228,9 @@ class test_create(unittest.TestCase):
     def test_add_events_to_google_calendar_integrated(self):
 
         # input:
-        standard_event1 = create_schedule.Event('test event 1', 60, 'study type')
-        standard_event2 = create_schedule.Event('test event 2', 60, 'study type')
-        memory_block_event1 = create_schedule.MemoryBlockEvent('MemoryBlock test event', 60, '', study_duration=45, recall_duration=15)
+        standard_event1 = create_schedule.Event('test - event 1', 60, 'study type')
+        standard_event2 = create_schedule.Event('test - event 2', 60, 'study type')
+        memory_block_event1 = create_schedule.MemoryBlockEvent('test - MemoryBlock event', 60, '', study_duration=45, recall_duration=15)
 
 
         start1 = str(create_schedule.helper_create_timezone_datetime_object('T10:00:00'))
@@ -157,12 +244,13 @@ class test_create(unittest.TestCase):
             ]
         
         # output:
+        input_events = [standard_event1, standard_event2, memory_block_event1]
         with mock.patch('create_schedule.get_todays_calendar', return_value = existing_events):
-            input_events = create_schedule.add_start_and_end_times_for_events([standard_event1, standard_event2, memory_block_event1])
+            create_schedule.add_start_and_end_times_for_events(input_events)
 
 
         # output:
-        result = create_schedule.add_events_to_google_calendar(input_events)
+        create_schedule.add_events_to_google_calendar(input_events)
 
 
         # expected: 
@@ -217,7 +305,11 @@ class test_create(unittest.TestCase):
 
         expected_events = [expected_event1, expected_event2, expected_event_study, expected_event_recall]
 
-        created_events = create_schedule.get_todays_calendar()
+        # confirm the events were created
+        created_events = Helpers.get_created_test_events_from_todays_calendar()
+        
+        # cleanup events that were created during the test
+        Helpers.delete_created_test_events()
 
         # tests:
         for created_event, expected_event in zip(created_events, expected_events):
@@ -229,7 +321,7 @@ class test_create(unittest.TestCase):
     def test_create_google_calendar_event_parent(self):
         
         #input:         
-        input_event = create_schedule.Event('single test event', 60, 'study type')
+        input_event = create_schedule.Event('test - single event', 60, 'study type')
 
         date = str(datetime.date.today())
         input_event.start_time = create_schedule.helper_create_timezone_datetime_object('T09:00:00')
@@ -238,17 +330,20 @@ class test_create(unittest.TestCase):
         input_event.create_google_calendar_event()
         
         # Confirm that the event was created
-        events_from_calendar = create_schedule.get_todays_calendar()
+        created_events = Helpers.get_created_test_events_from_todays_calendar()
+
+        # cleanup events that were created during the test
+        Helpers.delete_created_test_events()
         
         #tests: 
-        self.assertTrue(events_from_calendar != None)
-        self.assertTrue(events_from_calendar != [])
-        self.assertTrue(events_from_calendar[0]['start']['dateTime'][:-6] == input_event.start_time)
+        self.assertTrue(created_events != None)
+        self.assertTrue(created_events != [])
+        self.assertTrue(created_events[0]['start']['dateTime'][:-6] == input_event.start_time)
 
     def test_create_google_calendar_event_child_MemoryBlock(self):
         
         #input:         
-        input_event = create_schedule.MemoryBlockEvent('MemoryBlock test event', 60, '', study_duration=45, recall_duration=15)
+        input_event = create_schedule.MemoryBlockEvent('test - MemoryBlock event', 60, '', study_duration=45, recall_duration=15)
 
         input_start_and_end_times = {
             'start' : create_schedule.helper_create_timezone_datetime_object('T13:00:00'),
@@ -260,32 +355,22 @@ class test_create(unittest.TestCase):
         input_event.create_google_calendar_event()
         
         # Confirm that the event was created
-        events_from_calendar = create_schedule.get_todays_calendar()
-        
-        #tests: 
-        self.assertTrue(events_from_calendar != [])
-        
-        self.assertTrue(events_from_calendar[0]['start']['dateTime'][:-6] == input_event.study_event.start_time)
-        self.assertTrue(events_from_calendar[0]['end']['dateTime'][:-6] == input_event.study_event.end_time)
+        created_events = Helpers.get_created_test_events_from_todays_calendar()
 
-        self.assertTrue(events_from_calendar[1]['start']['dateTime'][:-6] == input_event.recall_event.start_time)
-        self.assertTrue(events_from_calendar[1]['end']['dateTime'][:-6] == input_event.recall_event.end_time)
+        # cleanup events that were created during the test
+        Helpers.delete_created_test_events()
+
+        #tests: 
+        self.assertTrue(created_events != [])
+        
+        self.assertTrue(created_events[0]['start']['dateTime'][:-6] == input_event.study_event.start_time)
+        self.assertTrue(created_events[0]['end']['dateTime'][:-6] == input_event.study_event.end_time)
+
+        self.assertTrue(created_events[1]['start']['dateTime'][:-6] == input_event.recall_event.start_time)
+        self.assertTrue(created_events[1]['end']['dateTime'][:-6] == input_event.recall_event.end_time)
 
 
     ## ------------------------End of test block---------------------
-
-  
-    def test_get_todays_calendar(self):
-
-        start_date = "2023-10-04"
-        end_date = "2023-10-06" 
-
-        service = get_calendar_data.access_calendar(SCOPES)
-        events = get_calendar_data.get_events(service, start_date, end_date)
-
-        #print(events)
-        #events[0]['start']['dateTime']
-        print(type(events[0]['start']['dateTime']))
 
 
     # 1 and 2 use mock.patch to mock get_todays_calendar
@@ -308,15 +393,15 @@ class test_create(unittest.TestCase):
             {'start' : {'dateTime' : start2}, 'end' : {'dateTime' : end2}},
         ]
         
-        new_events = [create_schedule.Event('A', 60, 'practice'), create_schedule.Event('B', 60, 'practice')]
+        result = [create_schedule.Event('test - A', 60, 'practice'), create_schedule.Event('test - B', 60, 'practice')]
 
         # output:
         with mock.patch('create_schedule.get_todays_calendar', return_value = existing_events):
-            result = create_schedule.add_start_and_end_times_for_events(new_events)
+            create_schedule.add_start_and_end_times_for_events(result)
         print('mock shedule: ', result)
         # expected: 
-        event1 = create_schedule.Event('A', 60, 'practice')
-        event2 = create_schedule.Event('B', 60, 'practice')
+        event1 = create_schedule.Event('test - A', 60, 'practice')
+        event2 = create_schedule.Event('test - B', 60, 'practice')
         event1.start_time, event1.end_time = create_schedule.helper_create_timezone_datetime_object('T09:00:00'), create_schedule.helper_create_timezone_datetime_object('T10:00:00') 
         event2.start_time, event2.end_time = create_schedule.helper_create_timezone_datetime_object('T12:30:00'), create_schedule.helper_create_timezone_datetime_object('T13:30:00') 
 
@@ -326,7 +411,6 @@ class test_create(unittest.TestCase):
         # check that each attribute matches for each event in the schedule
         for event_expected, event_result in zip(expected, result):
             self.assertEqual(event_expected, event_result) # uses dataclass functionality to directly compare events
-            #Helpers.assertEqual_all_attriubutes(event_expected, event_result)
 
     def test_add_start_and_end_times_for_events2(self):
         # input:
@@ -336,16 +420,16 @@ class test_create(unittest.TestCase):
             {'start' : {'dateTime' : date + 'T09:00:00-07:00'}, 'end' : {'dateTime' : date + 'T10:30:00-07:00'}},
             {'start' : {'dateTime' : date + 'T11:30:00-07:00'}, 'end' : {'dateTime' : date + 'T12:00:00-07:00'}},
             ]
-        new_events = [create_schedule.Event('A', 60, 'practice'), create_schedule.Event('B', 60, 'practice')]
+        result = [create_schedule.Event('test - A', 60, 'practice'), create_schedule.Event('test - B', 60, 'practice')]
 
         # output:
         with mock.patch('create_schedule.get_todays_calendar', return_value = existing_events):
-            result = create_schedule.add_start_and_end_times_for_events(new_events)
+            create_schedule.add_start_and_end_times_for_events(result)
         print('mock shedule: ', result)
 
         # expected: 
-        event1 = create_schedule.Event('A', 60, 'practice')
-        event2 = create_schedule.Event('B', 60, 'practice')
+        event1 = create_schedule.Event('test - A', 60, 'practice')
+        event2 = create_schedule.Event('test - B', 60, 'practice')
         event1.start_time, event1.end_time = create_schedule.helper_create_timezone_datetime_object('T10:30:00'), create_schedule.helper_create_timezone_datetime_object('T11:30:00') 
         event2.start_time, event2.end_time = create_schedule.helper_create_timezone_datetime_object('T12:00:00'), create_schedule.helper_create_timezone_datetime_object('T13:00:00') 
 
@@ -355,25 +439,27 @@ class test_create(unittest.TestCase):
         # check that each attribute matches for each event in the schedule
         for event_expected, event_result in zip(expected, result):
             self.assertEqual(event_expected, event_result)
-            #Helpers.assertEqual_all_attriubutes(event_expected, event_result)
 
     # 3 adds actual test event to the calendar
     def test_add_start_and_end_times_for_events3(self):
-         # add events that the function much schedule around to google calendar:
-        event_to_add = create_schedule.Event('A', 60, 'practice')
+         # add events that the function must schedule around to google calendar:
+        event_to_add = create_schedule.Event('test - A', 60, 'practice')
         event_to_add.start_time = create_schedule.helper_create_timezone_datetime_object('T09:00:00')
         event_to_add.end_time = create_schedule.helper_create_timezone_datetime_object('T10:00:00') 
         event_to_add.create_google_calendar_event()
        
         # input:
-        new_events = [create_schedule.Event('A', 60, 'practice'), create_schedule.Event('B', 60, 'practice')]
+        result = [create_schedule.Event('test - A', 60, 'practice'), create_schedule.Event('test - B', 60, 'practice')]
 
         # output:
-        result = create_schedule.add_start_and_end_times_for_events(new_events)
+        create_schedule.add_start_and_end_times_for_events(result)
+
+        # delete test events created for this test
+        Helpers.delete_created_test_events()
 
         # expected: 
-        event1 = create_schedule.Event('A', 60, 'practice')
-        event2 = create_schedule.Event('B', 60, 'practice')
+        event1 = create_schedule.Event('test - A', 60, 'practice')
+        event2 = create_schedule.Event('test - B', 60, 'practice')
         
         event1.start_time, event1.end_time = create_schedule.helper_create_timezone_datetime_object('T09:00:00'), create_schedule.helper_create_timezone_datetime_object('T10:00:00') 
         event2.start_time, event2.end_time = create_schedule.helper_create_timezone_datetime_object('T11:00:00'), create_schedule.helper_create_timezone_datetime_object('T12:00:00') 
@@ -383,7 +469,6 @@ class test_create(unittest.TestCase):
         # tests: 
         for event_expected, event_result in zip(expected, result):
             self.assertEqual(event_expected, event_result)
-            #Helpers.assertEqual_all_attriubutes(event_expected, event_result)
 
     #----------------------End of test block---------------------
     

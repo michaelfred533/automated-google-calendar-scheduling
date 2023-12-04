@@ -2,33 +2,33 @@
 
 """
 
-from __future__ import print_function
+from __future__ import print_function # must be at beginning of file
+
+# 3rd party imports
+import pytz
+
+# python built-in imports
+import copy
+from dataclasses import dataclass, field
 import datetime
 from datetime import time
-import os.path
-import pandas as pd
-import logging
-import copy
-import pytz
-from dataclasses import dataclass, field
+from typing import List, Dict
 
-from googleapiclient.discovery import build
-from google_auth_oauthlib.flow import InstalledAppFlow
-from google.auth.transport.requests import Request
-from google.oauth2.credentials import Credentials
-from apscheduler.schedulers.background import BackgroundScheduler
-
-from google.oauth2 import service_account
-
+# local imports
 import get_calendar_data
-from exceptions import *
+from exceptions import * # imports all exception classes into current namespace, such that you don't have to call exceptions.MyError each time. This is usually a bad idea though, as names can overlap quickly in large projects
+
 
 #SCOPES = ["https://www.googleapis.com/auth/calendar.readonly"]
 SCOPES = ["https://www.googleapis.com/auth/calendar"]
 
 # ----------------------------------------------------------------------------------------------------------------
 
-def helper_create_timezone_datetime_object(time_ISO_string):
+def helper_create_timezone_datetime_object(time_ISO_string: str) -> datetime.datetime:
+    """
+    converts a time in string format into a datetime object w/ timezone to be used to compare with other datetime objects
+    """
+    
     date = datetime.datetime.today().date()
     datetime_string = str(date) + time_ISO_string
     naive_datetime_object = datetime.datetime.strptime(datetime_string, '%Y-%m-%dT%H:%M:%S')
@@ -36,7 +36,6 @@ def helper_create_timezone_datetime_object(time_ISO_string):
 
     return timezone_datetime_object
 
-#TODO: remove test script funtion that checks if attrs are equal between event class instances
 @dataclass
 class Event:
 
@@ -50,24 +49,12 @@ class Event:
     #     self.study_type = study_type
     #     self.start_time = self.end_time = "pending"
 
-    def set_start_and_end_times(self, start_and_end_times):
+    def set_start_and_end_times(self, start_and_end_times: dict):
         self.start_time = start_and_end_times['start']
         self.end_time = start_and_end_times['end']
 
     def __str__(self):
         return f"Topic: {self.topic}, Duration: {self.duration}, Study Type: {self.study_type}"
-
-    # --- Data Validation ---
-
-    # TODO: this function is not implemented in code yet
-    def data_validation(self):
-        # NOTE: try-except-except blocks are use when you DONT want the program to crash. 
-        # In this case, I want to just raise exception
-        
-        time_difference = (self.end_time - self.start_time).total_seconds() / 60
-        if time_difference != self.duration:
-            raise StartEndDurationMismatchError
-
 
     def create_google_calendar_event(self):
 
@@ -76,7 +63,7 @@ class Event:
             converts event.start_time and event.end_time from dateTime object of format (2023-11-20 T09:00:00-08:00)
             into a string of format (2023-11-20 T09:00:00) which is the format used to create a google calendar event
             '''
-            def add_T_to_time_string(time_string):
+            def add_T_to_time_string(time_string: str):
                 date = time_string.split(' ')[0]
                 time = time_string.split(' ')[1]
                 time_string = date + 'T' + time
@@ -92,7 +79,7 @@ class Event:
             self.start_time = google_format_start_time
             self.end_time = google_format_end_time
 
-        def add_event_to_google_calendar(event):
+        def add_event_to_google_calendar(event: Event):
             service = get_calendar_data.access_calendar(SCOPES)
             event = service.events().insert(calendarId='primary', body=event).execute()
 
@@ -112,6 +99,19 @@ class Event:
 
         add_event_to_google_calendar(google_event)
 
+
+    # --- Data Validation ---
+    # TODO: this function is not implemented in code yet
+    def data_validation(self):
+        # NOTE: try-except-except blocks are use when you DONT want the program to crash. 
+        # In this case, I want to just raise exception
+        
+        time_difference = (self.end_time - self.start_time).total_seconds() / 60
+        if time_difference != self.duration:
+            raise StartEndDurationMismatchError
+
+
+
 class MemoryBlockEvent(Event):
     
     def __init__(self, topic, duration, study_type, study_duration, recall_duration):
@@ -121,7 +121,7 @@ class MemoryBlockEvent(Event):
         self.recall_event = Event(self.topic, recall_duration, 'recall')       
 
 
-    def set_start_and_end_times(self, start_and_end_times):
+    def set_start_and_end_times(self, start_and_end_times: dict):
         super().set_start_and_end_times(start_and_end_times)
         self.study_event.start_time = self.start_time
         self.study_event.end_time = self.study_event.start_time + datetime.timedelta(minutes = self.study_event.duration)
@@ -137,7 +137,7 @@ class MemoryBlockEvent(Event):
         self.study_event.create_google_calendar_event()
         self.recall_event.create_google_calendar_event()
 
-def get_user_input():
+def get_user_input() -> dict:
     """
     get user input for activities and what type of activities they are.
     whether to include free-recall sessions or not
@@ -281,7 +281,7 @@ class TopicInfo:
         return f"Topic: {self.topic}, Study Type: {self.study_type}, Proportion: {self.proportion}, Time Remaining: {self.time_remaining}\nEvents:\n\t{event_list}"
 
 
-def initialize_topic_info(user_input_info):
+def initialize_topic_info(user_input_info: dict) -> List[TopicInfo]:
     def calculate_times_for_topics(user_input_info):
 
         study_times = []
@@ -300,7 +300,7 @@ def initialize_topic_info(user_input_info):
     return topic_info_objects
 
 
-def group_topic_info_by_type(topic_info_objects):
+def group_topic_info_by_type(topic_info_objects: List[TopicInfo]) -> Dict[str, List[TopicInfo]]:
 
     topic_info_grouped_by_type_dict = {}
     for topic_info in topic_info_objects:
@@ -311,19 +311,24 @@ def group_topic_info_by_type(topic_info_objects):
 
     return topic_info_grouped_by_type_dict 
 
-def build_events_for_all_topics(topic_info_grouped_by_type_dict):
+def build_events_for_all_topics(topic_info_grouped_by_type_dict: Dict[str, List[TopicInfo]]) -> None:
     """
     input: 
     output:
     """
     # NOTE: Could rewrite this code to support more than 2 types
-    for topic_info in topic_info_grouped_by_type_dict['memory']:
-        build_events_for_memory_topic(topic_info)
 
-    for topic_info in topic_info_grouped_by_type_dict['practice']:
-        build_events_for_practice_topic(topic_info)        
+    for topic_type in topic_info_grouped_by_type_dict.keys():
+        if topic_type == 'memory':
+            for topic_info in topic_info_grouped_by_type_dict['memory']:
+                build_events_for_memory_topic(topic_info)
+        elif topic_type == 'practice':
+            for topic_info in topic_info_grouped_by_type_dict['practice']:
+                build_events_for_practice_topic(topic_info)
+        else:
+            raise Exception        
 
-def build_events_for_practice_topic(topic_info):
+def build_events_for_practice_topic(topic_info: TopicInfo) -> None:
     """
     input: 
     output: 
@@ -343,7 +348,7 @@ def build_events_for_practice_topic(topic_info):
         else:
             add_practice_event(topic_info, topic_info.time_remaining)
     
-def build_events_for_memory_topic(topic_info):
+def build_events_for_memory_topic(topic_info: TopicInfo) -> None:
     
     def add_memory_block_event(topic_info, memory_block_duration):
             
@@ -368,7 +373,18 @@ def build_events_for_memory_topic(topic_info):
             add_memory_block_event(topic_info, memory_block_duration) 
       
 
-def interleave(list_of_each_topics_event_lists):
+
+def create_list_of_all_events_to_schedule(topic_info_grouped_by_type_dict: Dict[str, List[TopicInfo]]) -> List[List[Event]]:
+    
+    list_of_each_topics_event_lists = []
+    for study_type_list in topic_info_grouped_by_type_dict.values():
+        for topic_info in study_type_list:
+            list_of_each_topics_event_lists.append(topic_info.events)
+
+    return list_of_each_topics_event_lists
+
+
+def interleave(list_of_each_topics_event_lists: List[List[Event]]) -> List[Event]:
     """
     """
 
@@ -409,17 +425,16 @@ def interleave(list_of_each_topics_event_lists):
             events_in_final_order.insert(ind + i, event)
 
         return events_in_final_order
-  
-    #TODO: error handling 
-    if len(list_of_each_topics_event_lists) <= 1:
-        print('events list is length 1 or 0: ', list_of_each_topics_event_lists)
-        raise ValueError
-    elif len(list_of_each_topics_event_lists) > 2:
+    
+
+   
+    if len(list_of_each_topics_event_lists) > 2:
         print('ENTERING recursion: ', list_of_each_topics_event_lists[1:])
         print()
         interleaved_events = interleave(list_of_each_topics_event_lists[1:])
         list_of_each_topics_event_lists = [list_of_each_topics_event_lists[0], interleaved_events] # create new list with interleaved events and leftover events
-    
+
+       
     print('EXITING recursion')
 
     events = {
@@ -435,28 +450,18 @@ def interleave(list_of_each_topics_event_lists):
 
     return events_in_final_order
 
-def create_list_of_all_events_to_schedule(topic_info_grouped_by_type_dict):
-    
-    new_events_list = []
-    for study_type_list in topic_info_grouped_by_type_dict.values():
-        for topic_info in study_type_list:
-            new_events_list.append(topic_info.events)
-
-    return new_events_list
-
-
-def get_todays_calendar():
+def get_todays_calendar() -> List[dict]:
     
     start_date = str(datetime.date.today())
     end_date = str((datetime.date.today() + datetime.timedelta(days = 1)))
 
     service = get_calendar_data.access_calendar(SCOPES)
     events = get_calendar_data.get_events(service, start_date, end_date)
-    print('from todays calendar: ', events)
+    print('from todays calendar: ', events, '\n')
 
     return events
 
-def add_start_and_end_times_for_events(new_events_list):
+def add_start_and_end_times_for_events(new_events_list: List[Event]) -> None:
    
     def add_start_end_duration_to_existing_events(existing_events):
         for event in existing_events:
@@ -497,42 +502,41 @@ def add_start_and_end_times_for_events(new_events_list):
         
         proposed_new_event_time['start'] = proposed_new_event_time['end']
 
-    return schedule 
 
-def add_events_to_google_calendar(events_in_final_order):    
+def add_events_to_google_calendar(events_in_final_order: List[Event]) -> None:    
 
     for event in events_in_final_order:
         event.create_google_calendar_event()
         
 
-if __name__ == "__main__":
-    # user_input_info = get_user_input()
 
-    # ADDEDADDEDADDEDADDEDADDED for testing
-    user_input_info = {
-        'total_time' : 120,   
-        'topics' : ['A', 'X', 'Y'],
-        'proportions' : [.33, .33, .34],
-        'study_type_list' : ['memory', 'practice', 'practice'], 
-    }
-    # ADDEDADDEDADDEDADDEDADDED for testing
+def skip_unnecessary_steps(topic_info_objects: List[TopicInfo]) -> List[Event]:
+    events_in_final_order = topic_info_objects[0].events
 
+    return events_in_final_order
+
+def run_program(user_input_info: Dict) -> None:
     topic_info_objects = initialize_topic_info(user_input_info)
-
     topic_info_grouped_by_type_dict = group_topic_info_by_type(topic_info_objects)
-
     build_events_for_all_topics(topic_info_grouped_by_type_dict)
 
-    list_of_each_topics_event_lists = create_list_of_all_events_to_schedule(topic_info_grouped_by_type_dict)
+    number_of_different_topics = len(topic_info_grouped_by_type_dict.keys())
+    if  number_of_different_topics == 1:
+        print('only 1 topic')
+        events_in_final_order = skip_unnecessary_steps(topic_info_objects)
+    else:
+        list_of_each_topics_event_lists = create_list_of_all_events_to_schedule(topic_info_grouped_by_type_dict)
+        sorted_list_of_each_topics_event_lists = sorted(list_of_each_topics_event_lists, key = len, reverse=True)
+        events_in_final_order = interleave(sorted_list_of_each_topics_event_lists)
+    
+    add_start_and_end_times_for_events(events_in_final_order)
+    add_events_to_google_calendar(events_in_final_order)
+
+if __name__ == "__main__":
+
+    user_input_info = get_user_input()
+    run_program(user_input_info)
 
     # NOTE: Could distribute by type AND topic, right now only by topic
     # MAYBE - not sure if this is interleaving or just task-switching
-    sorted_list_of_each_topics_event_lists = sorted(list_of_each_topics_event_lists, key = len, reverse=True)
-
-    events_in_final_order = interleave(sorted_list_of_each_topics_event_lists)
-    events_in_final_order = add_start_and_end_times_for_events(events_in_final_order)
-    add_events_to_google_calendar(events_in_final_order)
-
-
-
 
