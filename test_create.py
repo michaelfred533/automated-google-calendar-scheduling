@@ -19,11 +19,16 @@ import get_calendar_data
 
 service = get_calendar_data.access_calendar()
 
-#TODO: refactor code into helper functions 
 class Helpers:
       
     @staticmethod
     def create_sample_standard_event(name: str, duration: int, study_type: str, start_time: str, end_time: str) -> Event:
+        """
+        creates a sample event with proper start and end times 
+        to be used in tests as expected output from a function.
+    
+        """
+        
         event = Event(name, duration, study_type)
         event.start_time = helper_functions.create_timezone_datetime_object('T' + start_time)
         event.end_time = helper_functions.create_timezone_datetime_object('T' + end_time)
@@ -32,6 +37,11 @@ class Helpers:
 
     @staticmethod
     def simulate_expected_event_from_google_calendar(start_time, end_time):
+        """
+        creates a dict with start and end times in the format of google calendar events
+        that are pulled from the goole calendar. These simulated events are used as expected results from functions that are being tested
+        """
+        
         start_time = str(helper_functions.create_timezone_datetime_object('T' + start_time))
         start_time = start_time.split(' ')[0] + 'T' + start_time.split(' ')[1]
 
@@ -47,6 +57,12 @@ class Helpers:
 
     @staticmethod
     def interleave_assert_maximally_distributed(subject_list, result):                        
+        """
+        This function checks that each event type in the list of events is maximally spaced from other instances of the same event type.
+        That is, it ensures that all event types are maximally distributed
+        """
+        
+        
         for subject in subject_list:
             indexes = [index for index, value in enumerate(result) if value == subject] # gets all indexes for given subject
             distances_from_same_subject =[] 
@@ -58,13 +74,24 @@ class Helpers:
     
     @staticmethod
     def assertEqual_created_with_expected_calendar_events(created_event, expected_event):
+        """
+        checks that the attributes of created events are the same as expected ones. Namely, it checks the event summary, start, and end times.
+        """
         assert created_event['summary'] == expected_event['summary']
         assert created_event['start']['dateTime'][11:19] == expected_event['start']['dateTime'][11:19]
         assert created_event['end']['dateTime'][11:19] == expected_event['end']['dateTime'][11:19]
 
     @staticmethod
     def get_created_test_events_from_todays_calendar():
+        """
+        Pulls all events from today's google calendar and then filters out to select only the ones that were created in the test script.
+        This makes sure other existing events aren't used or deleted in the test script
+        """
+        
         def select_only_test_events(all_events):
+                """
+                Takes the events pulled from today's google calendar and selects those that were created from running the testing script.
+                """
                 created_events = []
                 for event in all_events:
                     if 'test - ' in event['summary']:
@@ -79,7 +106,9 @@ class Helpers:
 
     @staticmethod
     def delete_created_test_events():
-         
+        """
+        deletes any events created from running a test as cleanup
+        """
         def delete_event(event):
             service.events().delete(calendarId = 'primary', eventId=event['id']).execute()
             
@@ -165,11 +194,12 @@ class test_create(unittest.TestCase):
 
     ## ------------------------End of test block---------------------
 
-    # artificially feeds created events to be added to google calendar
     def test_add_events_to_google_calendar_unit(self):
+        """
+        unit test that artifically feeds events to be added to google calendar
+        """
 
         # input:
-        
         standard_event1 = Helpers.create_sample_standard_event('test - event 1', 60, 'sample', '09:00:00', '10:00:00')
         standard_event2 = Helpers.create_sample_standard_event('test - event 2', 60, 'sample', '11:00:00', '12:00:00')
 
@@ -216,7 +246,11 @@ class test_create(unittest.TestCase):
 
     # tests integration with add_start_and_end_times_for_events()
     def test_add_events_to_google_calendar_integrated(self):
-
+        """
+        integration test with add_start_and_end_times_for_events() 
+        feeds sample events and checks that they are being scheduled around any existing events correctly
+        and tests that they are added correctly to the calendar
+        """
         # input:
         standard_event1 = Event('test - event 1', 60, 'study type')
         standard_event2 = Event('test - event 2', 60, 'study type')
@@ -265,7 +299,10 @@ class test_create(unittest.TestCase):
     ## ------------------------End of test block---------------------
 
     def test_create_google_calendar_event_parent(self):
-        
+        """
+        tests the Event class method of adding the event to Google calendar for the parent Event class
+        """
+
         #input:         
         input_event = Helpers.create_sample_standard_event('test - single event', 60, 'sample', '09:00:00', '10:00:00')
         input_event.create_google_calendar_event()
@@ -282,7 +319,9 @@ class test_create(unittest.TestCase):
         self.assertTrue(created_events[0]['start']['dateTime'][:-6] == input_event.start_time)
 
     def test_create_google_calendar_event_child_MemoryBlock(self):
-        
+        """
+        Tests the MemoryBlock implementation of create_google_calendar_event 
+        """ 
         #input:         
         input_event = MemoryBlockEvent('test - MemoryBlock event', 60, '', study_duration=45, recall_duration=15)
 
@@ -316,6 +355,10 @@ class test_create(unittest.TestCase):
 
     # 1 and 2 use mock.patch to mock get_todays_calendar
     def test_add_start_and_end_times_for_events1(self):
+        """
+        tests that events are properly being scheduled around any existing events on the calendar
+        """
+        
         # input:
         event1 = Helpers.simulate_expected_event_from_google_calendar('10:00:00', '11:30:00')
         event2 = Helpers.simulate_expected_event_from_google_calendar('11:30:00', '12:30:00')
@@ -340,6 +383,10 @@ class test_create(unittest.TestCase):
             self.assertEqual(event_expected, event_result) # uses dataclass functionality to directly compare events
 
     def test_add_start_and_end_times_for_events2(self):
+        """
+        tests that events are properly being scheduled around any existing events on the calendar
+        """
+
         # input:
         existing_event1 = Helpers.simulate_expected_event_from_google_calendar('09:00:00', '10:30:00')
         existing_event2 = Helpers.simulate_expected_event_from_google_calendar('11:30:00', '12:00:00')
@@ -366,7 +413,12 @@ class test_create(unittest.TestCase):
 
     # 3 adds actual test event to the calendar
     def test_add_start_and_end_times_for_events3(self):
-         # add events that the function must schedule around to google calendar:
+        """
+        tests that events are properly being scheduled around any existing events on the calendar
+        In this test, an actual event is added to the google calendar to check. The previous 2 tests mock that funcitonality instead to simulate existing google calendar events
+        """
+        
+        # add events that the function must schedule around to google calendar:
         event_to_add = Helpers.create_sample_standard_event('test - A' , 60, 'practice', '09:00:00', '10:00:00')
         event_to_add.create_google_calendar_event()
        
@@ -396,6 +448,10 @@ class test_create(unittest.TestCase):
 
 
     def test_interleave1(self):
+        """
+        tests that the interleave() function orders events
+        """
+        
         # input:
         len_1, len_2 = 1, 4
         events_1 = ['A'] * len_1
@@ -448,7 +504,6 @@ class test_create(unittest.TestCase):
         # makes sure that each element is maximally distributed 
         Helpers.interleave_assert_maximally_distributed(subject_list, result)
         
-
     def test_interleave4(self):
         # input:
         lens = [2, 2, 1] 
@@ -470,17 +525,21 @@ class test_create(unittest.TestCase):
 
     ## ------------------------End of test block---------------------
 
-    #----------------------End of test block---------------------
+    ## ------------------------End of test block---------------------
     def test_build_events_for_memory_topic1(self):
+        """
+        tests that MemoryBlock events are being created from a simulated TopicInfo object
+        """
+
         # Create a mock TopicInfo instance for testing
-        topic_info = TopicInfo("Test Topic", "study", 1, 60)
+        topic_info = TopicInfo("Test Topic", "memory", 1, 60)
 
         # Call the function to be tested
         create_schedule.build_events_for_memory_topic(topic_info)
 
         # Assert the changes made by the function
         print(topic_info.events)
-        self.assertEqual(len(topic_info.events), 1)  # Check if two events are added
+        self.assertEqual(len(topic_info.events), 1) # check that the event is added
 
         # Assert that the added events are MemoryBlockEvent instances
         for event in topic_info.events:
