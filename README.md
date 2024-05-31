@@ -1,5 +1,7 @@
 Google Calendar Automatic Scheduler 
 
+This project allows the user to input different subjects to study along the time they have to study, and automatically creates an optimized learning schedule using the scientific principles of learning and memory such as interleaving and spaced practice. The program then automatically adds study sessions to the user's Google calendar and schedules around any existing events on Google calendar. 
+
 1. Install dependencies:
 ```
 pip install -r requirements.txt
