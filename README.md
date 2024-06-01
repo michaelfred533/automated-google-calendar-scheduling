@@ -8,6 +8,8 @@ This project allows the user to input different subjects to study along the time
 - I used this project to practice building comprehensive testing suites for my code
 
 
+### How to Use
+
 1. Install dependencies:
 ```
 pip install -r requirements.txt
