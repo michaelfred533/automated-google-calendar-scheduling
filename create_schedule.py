@@ -24,8 +24,6 @@ import get_calendar_data
 
 # ----------------------------------------------------------------------------------------------------------------
 
-# TODO: delete all print statements 
-# TODO: add documentation, test_create documentation is finished
 
 def get_user_input() -> dict:
     """
